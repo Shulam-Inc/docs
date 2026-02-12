@@ -1,0 +1,122 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "Shulam",
+  "logo": {
+    "dark": "/images/logo-dark.svg",
+    "light": "/images/logo-light.svg"
+  },
+  "favicon": "/images/favicon.svg",
+  "colors": {
+    "primary": "#6366F1",
+    "light": "#818CF8",
+    "dark": "#4F46E5",
+    "anchors": {
+      "from": "#6366F1",
+      "to": "#8B5CF6"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "Support",
+      "url": "mailto:support@shulam.io"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Dashboard",
+    "url": "https://app.shulam.io"
+  },
+  "tabs": [
+    {
+      "name": "API Reference",
+      "url": "api-reference"
+    },
+    {
+      "name": "SDK",
+      "url": "sdk"
+    }
+  ],
+  "anchors": [
+    {
+      "name": "GitHub",
+      "icon": "github",
+      "url": "https://github.com/Shulam-Inc"
+    },
+    {
+      "name": "Community",
+      "icon": "discord",
+      "url": "https://discord.gg/shulam"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": [
+        "getting-started/introduction",
+        "getting-started/quickstart",
+        "getting-started/concepts",
+        "getting-started/account-setup"
+      ]
+    },
+    {
+      "group": "Guides",
+      "pages": [
+        "guides/merchant-integration",
+        "guides/buyer-sdk",
+        "guides/webhooks",
+        "guides/testing",
+        "guides/escrow-payments",
+        "guides/migration-from-stripe"
+      ]
+    },
+    {
+      "group": "x402 Protocol",
+      "pages": [
+        "x402-protocol/overview",
+        "x402-protocol/eip-3009",
+        "x402-protocol/payment-flow",
+        "x402-protocol/security"
+      ]
+    },
+    {
+      "group": "Resources",
+      "pages": [
+        "resources/faq",
+        "resources/glossary",
+        "resources/changelog",
+        "resources/support"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "api-reference/authentication",
+        "api-reference/verify",
+        "api-reference/settle",
+        "api-reference/escrow",
+        "api-reference/cashback",
+        "api-reference/webhooks",
+        "api-reference/errors"
+      ]
+    },
+    {
+      "group": "SDK",
+      "pages": [
+        "sdk/installation",
+        "sdk/shulam-payment",
+        "sdk/react-components",
+        "sdk/typescript-types",
+        "sdk/examples"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "x": "https://x.com/shulam_pay",
+    "github": "https://github.com/Shulam-Inc"
+  },
+  "api": {
+    "baseUrl": "https://api.shulam.io",
+    "auth": {
+      "method": "bearer"
+    }
+  }
+}

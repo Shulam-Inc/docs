@@ -1,0 +1,153 @@
+---
+title: "Merchant Integration"
+description: "Complete server-side guide for accepting Shulam payments"
+---
+
+# Merchant Integration
+
+This guide covers the full server-side integration for accepting USDC payments via Shulam.
+
+## Integration Flow
+
+```
+1. Buyer clicks "Pay with Shulam" on your site
+2. Your frontend uses the Buyer SDK to sign a payment authorization
+3. Your backend receives the paymentHeader
+4. Your backend calls POST /verify to validate the signature
+5. Your backend calls POST /settle to execute the on-chain transfer
+6. You receive a webhook confirming the payment
+7. You fulfill the order
+```
+
+## Server Setup
+
+```javascript
+import express from "express";
+
+const app = express();
+app.use(express.json());
+
+const SHULAM_API = "https://api.shulam.io";
+const API_KEY = process.env.SHULAM_API_KEY;
+
+app.post("/checkout", async (req, res) => {
+  const { paymentHeader, orderId } = req.body;
+
+  // Step 1: Verify the payment signature
+  const verifyRes = await fetch(`${SHULAM_API}/verify`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      paymentHeader,
+      expectedTo: process.env.MERCHANT_WALLET,
+      expectedValue: getOrderAmount(orderId),
+    }),
+  });
+
+  const verification = await verifyRes.json();
+  if (!verification.verified) {
+    return res.status(400).json({ error: verification.error });
+  }
+
+  // Step 2: Settle the payment
+  const settleRes = await fetch(`${SHULAM_API}/settle`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ paymentHeader, mode: "direct" }),
+  });
+
+  const settlement = await settleRes.json();
+  if (!settlement.settled) {
+    return res.status(400).json({ error: settlement.error });
+  }
+
+  // Step 3: Mark order as paid
+  await markOrderPaid(orderId, settlement.txHash);
+
+  res.json({
+    success: true,
+    txHash: settlement.txHash,
+    txLink: settlement.txLink,
+  });
+});
+```
+
+## Handling Webhooks
+
+Don't rely solely on the settlement response — use webhooks for reliable payment confirmation:
+
+```javascript
+import crypto from "node:crypto";
+
+app.post("/webhooks/shulam", (req, res) => {
+  // Verify webhook signature
+  const signature = req.headers["x-shulam-signature"];
+  const payload = JSON.stringify(req.body);
+  const expected = crypto
+    .createHmac("sha256", process.env.SHULAM_WEBHOOK_SECRET)
+    .update(payload)
+    .digest("hex");
+
+  if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+    return res.status(401).json({ error: "Invalid signature" });
+  }
+
+  const { type, data } = req.body;
+
+  switch (type) {
+    case "payment.completed":
+      fulfillOrder(data.txHash);
+      break;
+    case "payment.failed":
+      notifyCustomer(data.error);
+      break;
+    case "escrow.released":
+      markOrderShipped(data.escrowId);
+      break;
+  }
+
+  res.json({ received: true });
+});
+```
+
+## Error Handling
+
+Always handle settlement failures gracefully:
+
+```javascript
+if (!settlement.settled) {
+  if (settlement.retryable) {
+    // Queue for retry with exponential backoff
+    await retryQueue.add("settle-payment", {
+      paymentHeader,
+      orderId,
+      attempt: 1,
+    });
+    return res.json({ status: "pending", message: "Payment is being processed" });
+  } else {
+    // Permanent failure — ask buyer to try again
+    return res.status(400).json({
+      error: "Payment failed. Please try again with a new authorization.",
+    });
+  }
+}
+```
+
+## Idempotency
+
+Payment authorizations are naturally idempotent — each nonce can only be used once. If you accidentally call `/settle` twice with the same authorization, the second call will fail with `nonce already used`.
+
+## Going Live Checklist
+
+- [ ] Swap `sk_test_` for `sk_live_` API key
+- [ ] Update merchant wallet to Base Mainnet address
+- [ ] Configure production webhook endpoint with HTTPS
+- [ ] Test with a small real payment (e.g., $1 USDC)
+- [ ] Set up monitoring for failed webhooks
+- [ ] Implement retry logic for transient failures

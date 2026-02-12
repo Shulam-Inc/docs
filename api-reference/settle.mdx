@@ -1,0 +1,181 @@
+---
+title: "Settle Payment"
+description: "Execute a payment settlement on-chain"
+api: "POST /settle"
+---
+
+# Settle Payment
+
+Execute an on-chain USDC transfer using a signed payment authorization. Supports both direct settlement and deferred (escrow) mode.
+
+## Request
+
+<ParamField body="payment" type="object">
+  The decoded payment object. Provide either `payment` or `paymentHeader`.
+</ParamField>
+
+<ParamField body="paymentHeader" type="string">
+  Base64url-encoded payment header string.
+</ParamField>
+
+<ParamField body="mode" type="string" default="direct">
+  Settlement mode:
+  - `direct` — immediate transfer from buyer to merchant
+  - `deferred` — deposit into escrow contract for later release
+</ParamField>
+
+## Response
+
+### Success
+
+<ResponseField name="settled" type="boolean" required>
+  Whether the settlement succeeded.
+</ResponseField>
+
+<ResponseField name="txId" type="string" required>
+  Internal transaction tracking ID.
+</ResponseField>
+
+<ResponseField name="txHash" type="string">
+  On-chain transaction hash.
+</ResponseField>
+
+<ResponseField name="txLink" type="string">
+  Block explorer link for the transaction.
+</ResponseField>
+
+<ResponseField name="escrowId" type="string">
+  Escrow ID (present when `mode: "deferred"`).
+</ResponseField>
+
+### Failure
+
+<ResponseField name="settled" type="boolean">
+  `false` when settlement fails.
+</ResponseField>
+
+<ResponseField name="txId" type="string">
+  Internal tracking ID for debugging.
+</ResponseField>
+
+<ResponseField name="error" type="string">
+  Error description.
+</ResponseField>
+
+<ResponseField name="retryable" type="boolean">
+  Whether the request can be retried. `false` for permanent failures like invalid signatures or expired authorizations.
+</ResponseField>
+
+## Examples
+
+### Direct Settlement
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.shulam.io/settle \
+  -H "Authorization: Bearer sk_test_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "paymentHeader": "eyJ0eXBlIjoiZXhhY3QiLCJuZXR3b3JrIjoiYmFzZS1zZXBvbGlhIi...",
+    "mode": "direct"
+  }'
+```
+
+```javascript JavaScript
+const res = await fetch("https://api.shulam.io/settle", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer sk_test_...",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    paymentHeader: paymentResult.paymentHeader,
+    mode: "direct",
+  }),
+});
+
+const data = await res.json();
+if (data.settled) {
+  console.log(`Settled: ${data.txLink}`);
+}
+```
+
+```python Python
+res = requests.post(
+    "https://api.shulam.io/settle",
+    headers={
+        "Authorization": "Bearer sk_test_...",
+        "Content-Type": "application/json",
+    },
+    json={
+        "paymentHeader": payment_header,
+        "mode": "direct",
+    },
+)
+```
+</CodeGroup>
+
+#### Success Response
+
+```json
+{
+  "settled": true,
+  "txId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "txHash": "0x1234567890abcdef...",
+  "txLink": "https://sepolia.basescan.org/tx/0x1234..."
+}
+```
+
+### Deferred Settlement (Escrow)
+
+```bash
+curl -X POST https://api.shulam.io/settle \
+  -H "Authorization: Bearer sk_test_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "paymentHeader": "eyJ0eXBlIjoiZXhhY3QiLCJuZXR3b3JrIjoiYmFzZS1zZXBvbGlhIi...",
+    "mode": "deferred"
+  }'
+```
+
+#### Success Response
+
+```json
+{
+  "settled": true,
+  "txId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "txHash": "0xabcdef1234567890...",
+  "txLink": "https://sepolia.basescan.org/tx/0xabcdef...",
+  "escrowId": "0x9876543210fedcba..."
+}
+```
+
+### OFAC Blocked Response
+
+```json
+{
+  "settled": false,
+  "error": "Payment blocked: address is on OFAC sanctions list",
+  "blockedAddresses": ["0xSanctionedAddress"]
+}
+```
+
+## Webhook Events
+
+Successful settlements trigger webhook events:
+
+| Mode | Event |
+|------|-------|
+| Direct | `payment.completed` |
+| Deferred | `escrow.deposited` |
+| Failed | `payment.failed` |
+| OFAC blocked | `payment.blocked` |
+
+## Permanent Failure Patterns
+
+These errors are non-retryable (`retryable: false`):
+
+- `nonce already used` — the authorization was already settled
+- `invalid signature` — the signature doesn't match the signer
+- `authorization is expired` — `validBefore` has passed
+- `authorization is not yet valid` — `validAfter` hasn't been reached

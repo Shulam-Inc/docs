@@ -1,0 +1,176 @@
+---
+title: "Examples"
+description: "Complete code examples for common payment scenarios"
+---
+
+# Examples
+
+## Basic Payment
+
+The simplest integration — a single payment from buyer to merchant.
+
+```typescript
+import { ShulamPayment } from "@shulam/buyer-sdk";
+
+const shulam = new ShulamPayment({
+  network: "base-sepolia",
+  facilitatorUrl: "https://api.shulam.io",
+});
+
+await shulam.connect();
+
+const result = await shulam.pay({
+  to: "0xMerchantAddress",
+  amount: "5000000", // 5 USDC
+});
+
+// Send to your backend
+const response = await fetch("/api/pay", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ paymentHeader: result.paymentHeader }),
+});
+```
+
+## React Checkout Page
+
+A complete checkout page with loading states and error handling.
+
+```tsx
+import { useState } from "react";
+import { ShulamButton } from "@shulam/buyer-sdk/react";
+
+function CheckoutPage({ order }) {
+  const [status, setStatus] = useState("idle");
+  const [txHash, setTxHash] = useState(null);
+
+  const amount = (order.total * 1e6).toString();
+
+  return (
+    <div>
+      <h2>Order #{order.id}</h2>
+      <p>Total: ${order.total.toFixed(2)} USDC</p>
+
+      {status === "idle" && (
+        <ShulamButton
+          to={order.merchantWallet}
+          amount={amount}
+          network="base"
+          onSuccess={async (result) => {
+            setStatus("settling");
+            try {
+              const res = await fetch("/api/checkout", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  paymentHeader: result.paymentHeader,
+                  orderId: order.id,
+                }),
+              });
+              const data = await res.json();
+              if (data.success) {
+                setTxHash(data.txHash);
+                setStatus("success");
+              } else {
+                setStatus("error");
+              }
+            } catch {
+              setStatus("error");
+            }
+          }}
+          onError={() => setStatus("error")}
+        >
+          Pay ${order.total.toFixed(2)} USDC
+        </ShulamButton>
+      )}
+
+      {status === "settling" && <p>Settling payment on-chain...</p>}
+      {status === "success" && <p>Payment confirmed! TX: {txHash}</p>}
+      {status === "error" && (
+        <button onClick={() => setStatus("idle")}>Try Again</button>
+      )}
+    </div>
+  );
+}
+```
+
+## Escrow Payment (Marketplace)
+
+Hold funds in escrow and release when the buyer confirms delivery.
+
+```typescript
+// Frontend: buyer pays
+const result = await shulam.pay({
+  to: "0xMarketplaceWallet",
+  amount: "50000000", // 50 USDC
+});
+
+// Backend: create escrow
+const settlement = await fetch("/api/orders", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer sk_live_...",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    paymentHeader: result.paymentHeader,
+    mode: "deferred",
+  }),
+});
+
+const { escrowId } = await settlement.json();
+
+// Later: buyer confirms delivery → release funds
+await fetch("/api/orders/confirm", {
+  method: "POST",
+  body: JSON.stringify({ escrowId }),
+});
+```
+
+## Subscription Payment
+
+Collect payment upfront, release monthly.
+
+```typescript
+// Collect 12-month subscription upfront
+const result = await shulam.pay({
+  to: "0xSubscriptionWallet",
+  amount: "120000000", // $120 USDC for 12 months
+});
+
+// Settle to escrow
+await fetch("https://api.shulam.io/settle", {
+  method: "POST",
+  headers: { "Authorization": "Bearer sk_live_...", "Content-Type": "application/json" },
+  body: JSON.stringify({ paymentHeader: result.paymentHeader, mode: "deferred" }),
+});
+
+// Monthly cron job: release 1/12th of the escrow
+// (Requires splitting into monthly escrows at deposit time)
+```
+
+## Cashback Display
+
+Show the buyer's accumulated cashback.
+
+```tsx
+import { useCashback, useShulam } from "@shulam/buyer-sdk/react";
+
+function Dashboard() {
+  const { isConnected, connect } = useShulam();
+  const { balanceFormatted, isLoading } = useCashback();
+
+  if (!isConnected) {
+    return <button onClick={connect}>Connect to view cashback</button>;
+  }
+
+  if (isLoading) return <p>Loading cashback...</p>;
+
+  return (
+    <div>
+      <h3>Your Cashback</h3>
+      <p>{balanceFormatted}</p>
+    </div>
+  );
+}
+```

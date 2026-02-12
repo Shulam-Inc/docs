@@ -1,0 +1,156 @@
+---
+title: "Webhooks"
+description: "Configure and manage webhook endpoints for payment events"
+---
+
+# Webhook Endpoints
+
+Register webhook URLs to receive real-time notifications for payment events.
+
+## Configure Webhook
+
+Register a new webhook endpoint.
+
+<ParamField body="url" type="string" required>
+  The HTTPS URL to receive webhook payloads.
+</ParamField>
+
+<ParamField body="events" type="string[]" required>
+  Array of event types to subscribe to.
+</ParamField>
+
+<ParamField body="secret" type="string">
+  Shared secret for signing webhook payloads. Used for HMAC-SHA256 signature verification.
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.shulam.io/webhooks/configure \
+  -H "Authorization: Bearer sk_test_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://yoursite.com/webhooks/shulam",
+    "events": ["payment.completed", "payment.failed"],
+    "secret": "whsec_your_secret"
+  }'
+```
+
+```javascript JavaScript
+const res = await fetch("https://api.shulam.io/webhooks/configure", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer sk_test_...",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    url: "https://yoursite.com/webhooks/shulam",
+    events: ["payment.completed", "payment.failed"],
+    secret: "whsec_your_secret",
+  }),
+});
+```
+</CodeGroup>
+
+---
+
+## List Webhooks
+
+Retrieve all configured webhook endpoints.
+
+```bash
+curl https://api.shulam.io/webhooks \
+  -H "Authorization: Bearer sk_test_..."
+```
+
+### Response
+
+```json
+[
+  {
+    "id": "wh_abc123",
+    "url": "https://yoursite.com/webhooks/shulam",
+    "events": ["payment.completed", "payment.failed"],
+    "active": true,
+    "createdAt": "2025-01-15T10:00:00Z"
+  }
+]
+```
+
+---
+
+## Delete Webhook
+
+Remove a webhook endpoint.
+
+```bash
+curl -X DELETE https://api.shulam.io/webhooks/wh_abc123 \
+  -H "Authorization: Bearer sk_test_..."
+```
+
+---
+
+## Event Types
+
+| Event | Description |
+|-------|------------|
+| `payment.completed` | Direct payment settled successfully |
+| `payment.failed` | Payment settlement failed |
+| `payment.blocked` | Payment blocked by OFAC/compliance screening |
+| `escrow.deposited` | Funds deposited into escrow |
+| `escrow.released` | Escrowed funds released to merchant |
+| `escrow.refunded` | Escrowed funds refunded to buyer |
+| `cashback.credited` | Cashback credited to buyer |
+| `cashback.withdrawn` | Buyer withdrew cashback |
+
+## Webhook Payload
+
+All webhooks are delivered as `POST` requests with a JSON body:
+
+```json
+{
+  "id": "evt_abc123",
+  "type": "payment.completed",
+  "timestamp": "2025-01-15T10:30:00Z",
+  "data": {
+    "txHash": "0x1234...",
+    "txLink": "https://sepolia.basescan.org/tx/0x1234...",
+    "from": "0xBuyerAddress",
+    "to": "0xMerchantAddress",
+    "value": "10000000",
+    "chainId": 84532
+  }
+}
+```
+
+## Signature Verification
+
+If you provided a `secret` when configuring the webhook, payloads include an `X-Shulam-Signature` header containing an HMAC-SHA256 signature:
+
+```javascript
+import crypto from "node:crypto";
+
+function verifyWebhook(payload, signature, secret) {
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(payload)
+    .digest("hex");
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expected)
+  );
+}
+```
+
+## Retry Policy
+
+Failed webhook deliveries are retried with exponential backoff:
+
+| Attempt | Delay |
+|---------|-------|
+| 1 | Immediate |
+| 2 | 30 seconds |
+| 3 | 5 minutes |
+| 4 | 30 minutes |
+| 5 | 2 hours |
+
+After 5 failed attempts, the webhook is marked as failed and no further retries are attempted.

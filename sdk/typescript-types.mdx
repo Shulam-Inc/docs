@@ -1,0 +1,124 @@
+---
+title: "TypeScript Types"
+description: "Type definitions for the Shulam Buyer SDK"
+---
+
+# TypeScript Types
+
+The SDK is written in TypeScript and exports all types.
+
+## Configuration
+
+```typescript
+interface ShulamConfig {
+  /** Network identifier */
+  network: "base-sepolia" | "base";
+  /** Shulam facilitator API URL */
+  facilitatorUrl: string;
+}
+```
+
+## Payment
+
+```typescript
+interface PayParams {
+  /** Merchant wallet address */
+  to: string;
+  /** Amount in USDC base units (6 decimals) */
+  amount: string;
+  /** Authorization validity in seconds (default: 3600) */
+  validFor?: number;
+}
+
+interface PayResult {
+  /** Base64url-encoded payment header for the backend */
+  paymentHeader: string;
+  /** Buyer's wallet address */
+  from: string;
+  /** Merchant's wallet address */
+  to: string;
+  /** Payment amount in USDC base units */
+  amount: string;
+}
+```
+
+## Cashback
+
+```typescript
+interface CashbackBalance {
+  /** Raw balance in USDC base units */
+  balance: string;
+  /** Human-readable balance (e.g., "2.50 USDC") */
+  balanceFormatted: string;
+}
+```
+
+## Wallet Connection
+
+```typescript
+interface ConnectOptions {
+  /** EIP-1193 provider instance */
+  provider?: EIP1193Provider;
+}
+```
+
+## Errors
+
+```typescript
+interface ShulamError extends Error {
+  /** Error code for programmatic handling */
+  code: ShulamErrorCode;
+}
+
+type ShulamErrorCode =
+  | "USER_REJECTED"
+  | "INSUFFICIENT_BALANCE"
+  | "WALLET_NOT_CONNECTED"
+  | "UNSUPPORTED_NETWORK"
+  | "INVALID_PARAMS"
+  | "SIGNATURE_FAILED";
+```
+
+## EIP-3009 Authorization
+
+```typescript
+interface TransferAuthorization {
+  from: string;
+  to: string;
+  value: string;
+  validAfter: string;
+  validBefore: string;
+  nonce: string;
+}
+
+interface PaymentPayload {
+  authorization: TransferAuthorization;
+  signature: string;
+}
+
+interface Payment {
+  network: string;
+  payload: PaymentPayload;
+}
+```
+
+## React Component Props
+
+```typescript
+interface ShulamButtonProps {
+  to: string;
+  amount: string;
+  network: "base-sepolia" | "base";
+  onSuccess: (result: PayResult) => void;
+  onError?: (error: ShulamError) => void;
+  disabled?: boolean;
+  className?: string;
+  children?: React.ReactNode;
+}
+
+interface ShulamProviderProps {
+  network: "base-sepolia" | "base";
+  facilitatorUrl: string;
+  children: React.ReactNode;
+}
+```

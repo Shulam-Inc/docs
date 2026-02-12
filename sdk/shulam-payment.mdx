@@ -1,0 +1,133 @@
+---
+title: "ShulamPayment"
+description: "Core SDK class for creating and managing payments"
+---
+
+# ShulamPayment
+
+The main SDK class for connecting wallets, signing payments, and querying balances.
+
+## Constructor
+
+```typescript
+new ShulamPayment(config: ShulamConfig)
+```
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `network` | `string` | Yes | Network identifier: `"base-sepolia"` or `"base"` |
+| `facilitatorUrl` | `string` | Yes | Shulam facilitator API URL |
+
+### Example
+
+```typescript
+const shulam = new ShulamPayment({
+  network: "base-sepolia",
+  facilitatorUrl: "https://api.shulam.io",
+});
+```
+
+## Methods
+
+### connect()
+
+Connect the buyer's wallet.
+
+```typescript
+await shulam.connect(options?: ConnectOptions): Promise<void>
+```
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `provider` | `EIP1193Provider` | Specific wallet provider (defaults to `window.ethereum`) |
+
+```typescript
+// Auto-detect wallet
+await shulam.connect();
+
+// Specific provider
+await shulam.connect({ provider: coinbaseWallet.getProvider() });
+```
+
+### disconnect()
+
+Disconnect the wallet.
+
+```typescript
+shulam.disconnect(): void
+```
+
+### isConnected()
+
+Check if a wallet is connected.
+
+```typescript
+shulam.isConnected(): boolean
+```
+
+### getAddress()
+
+Get the connected wallet address.
+
+```typescript
+shulam.getAddress(): string | null
+```
+
+### pay()
+
+Create and sign a payment authorization.
+
+```typescript
+await shulam.pay(params: PayParams): Promise<PayResult>
+```
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `to` | `string` | Yes | Merchant's wallet address |
+| `amount` | `string` | Yes | Payment amount in USDC base units (6 decimals) |
+| `validFor` | `number` | No | Authorization validity in seconds (default: 3600) |
+
+Returns:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `paymentHeader` | `string` | Base64url-encoded payment header to send to your backend |
+| `from` | `string` | Buyer's address |
+| `to` | `string` | Merchant's address |
+| `amount` | `string` | Payment amount |
+
+```typescript
+const result = await shulam.pay({
+  to: "0xMerchantAddress",
+  amount: "10000000", // 10 USDC
+  validFor: 1800, // 30 minutes
+});
+
+// Send paymentHeader to backend
+await fetch("/api/checkout", {
+  method: "POST",
+  body: JSON.stringify({ paymentHeader: result.paymentHeader }),
+});
+```
+
+### getCashback()
+
+Query the connected wallet's cashback balance.
+
+```typescript
+await shulam.getCashback(): Promise<CashbackBalance>
+```
+
+Returns:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `balance` | `string` | Raw balance in USDC base units |
+| `balanceFormatted` | `string` | Human-readable balance (e.g., `"2.50 USDC"`) |
+
+```typescript
+const cashback = await shulam.getCashback();
+console.log(cashback.balanceFormatted); // "2.50 USDC"
+```

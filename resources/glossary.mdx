@@ -1,0 +1,26 @@
+---
+title: "Glossary"
+description: "Key terms and definitions used in Shulam documentation"
+---
+
+# Glossary
+
+| Term | Definition |
+|------|-----------|
+| **Base** | An Ethereum L2 rollup built by Coinbase. Shulam settles payments here for low gas costs and fast finality. |
+| **Cashback** | USDC rewards credited to buyers after each payment, stored in the CashbackVault contract. |
+| **CashbackVault** | Smart contract that holds and distributes buyer cashback credits. |
+| **DisputeResolver** | Smart contract that manages payment disputes between buyers and merchants. |
+| **EIP-712** | Ethereum standard for typed structured data signing. Used for creating human-readable signature requests. |
+| **EIP-3009** | Ethereum standard for `TransferWithAuthorization` — enables gasless USDC transfers via off-chain signatures. |
+| **Escrow** | Funds held in the ShulamEscrow smart contract until release conditions are met. |
+| **Facilitator** | A trusted third party (Shulam) that verifies payment signatures and executes on-chain settlements. |
+| **KYB** | Know Your Business — merchant verification process required before accepting payments. |
+| **KYT** | Know Your Transaction — risk scoring of blockchain transactions for compliance. |
+| **OFAC** | Office of Foreign Assets Control — US Treasury agency that maintains the SDN sanctions list. |
+| **SDN List** | Specially Designated Nationals list — OFAC's list of sanctioned addresses. |
+| **Settlement** | The on-chain execution of a USDC transfer from buyer to merchant. |
+| **ShulamEscrow** | Smart contract that holds USDC in escrow with deposit, release, and refund functionality. |
+| **USDC** | USD Coin — a regulated stablecoin pegged 1:1 to the US dollar, issued by Circle. |
+| **Webhook** | HTTP callback notification sent when payment events occur (e.g., payment completed, escrow released). |
+| **x402** | Coinbase's HTTP payment protocol using status code 402 (Payment Required) for internet-native payments. |

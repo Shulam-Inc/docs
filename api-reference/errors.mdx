@@ -1,0 +1,99 @@
+---
+title: "Error Codes"
+description: "HTTP status codes and error responses from the Shulam API"
+---
+
+# Error Codes
+
+The Shulam API uses standard HTTP status codes and returns structured error responses.
+
+## HTTP Status Codes
+
+| Code | Meaning | Description |
+|------|---------|------------|
+| 200 | OK | Request succeeded |
+| 400 | Bad Request | Invalid request parameters or payment data |
+| 401 | Unauthorized | Missing or invalid API key |
+| 403 | Forbidden | OFAC/compliance screening blocked the request |
+| 404 | Not Found | Resource doesn't exist |
+| 429 | Too Many Requests | Rate limit exceeded |
+| 500 | Internal Error | Unexpected server error |
+
+## Error Response Format
+
+All error responses follow this structure:
+
+```json
+{
+  "error": "Human-readable error message",
+  "code": "ERROR_CODE"
+}
+```
+
+For settlement errors, additional fields may be present:
+
+```json
+{
+  "settled": false,
+  "txId": "tracking-id",
+  "error": "Error description",
+  "retryable": true
+}
+```
+
+## Common Errors
+
+### Verification Errors
+
+| Error | Cause | Solution |
+|-------|-------|---------|
+| `Provide 'payment' object or 'paymentHeader'` | Missing payment data | Include either `payment` or `paymentHeader` in the request body |
+| `Invalid signature` | Signature doesn't match the `from` address | Ensure the buyer signed with the correct wallet |
+| `Unsupported network` | Unknown network identifier | Use `base-sepolia` (testnet) or `base` (mainnet) |
+
+### Settlement Errors
+
+| Error | Retryable | Cause |
+|-------|-----------|-------|
+| `nonce already used` | No | The authorization was already settled |
+| `invalid signature` | No | Corrupted or tampered signature |
+| `authorization is expired` | No | `validBefore` timestamp has passed |
+| `authorization is not yet valid` | No | `validAfter` timestamp is in the future |
+| `insufficient funds` | Yes | Buyer doesn't have enough USDC |
+| `settlement timeout` | Yes | Transaction didn't confirm in time |
+
+### Escrow Errors
+
+| Error | Cause |
+|-------|-------|
+| `escrowId is required` | Missing `escrowId` in request body |
+| `Escrow not found` | Invalid escrow ID |
+| `Escrow already settled` | Escrow was already released or refunded |
+| `Release time not reached` | Time-locked escrow cannot be released yet |
+
+### Compliance Errors
+
+| Error | HTTP Code | Cause |
+|-------|-----------|-------|
+| `Payment blocked: address is on OFAC sanctions list` | 403 | Buyer or merchant address is sanctioned |
+
+## Retryable vs Non-Retryable
+
+The `retryable` field in settlement error responses indicates whether retrying the request may succeed:
+
+- **Retryable (`true`)**: Transient failures like network timeouts or temporary insufficient funds. Use exponential backoff.
+- **Non-retryable (`false`)**: Permanent failures like invalid signatures or used nonces. Do not retry.
+
+```javascript
+const result = await settle(payment);
+
+if (!result.settled) {
+  if (result.retryable) {
+    // Schedule retry with backoff
+    await retryWithBackoff(() => settle(payment));
+  } else {
+    // Permanent failure — notify user
+    console.error("Payment failed permanently:", result.error);
+  }
+}
+```

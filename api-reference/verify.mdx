@@ -1,0 +1,145 @@
+---
+title: "Verify Payment"
+description: "Verify an EIP-3009 payment authorization signature"
+api: "POST /verify"
+---
+
+# Verify Payment
+
+Verify that a payment authorization signature is valid before settling.
+
+## Request
+
+<ParamField body="payment" type="object">
+  The decoded payment object containing the EIP-3009 authorization. Provide either `payment` or `paymentHeader`.
+
+  <Expandable title="payment fields">
+    <ParamField body="payload" type="object" required>
+      <ParamField body="authorization" type="object" required>
+        <ParamField body="from" type="string" required>Buyer's address</ParamField>
+        <ParamField body="to" type="string" required>Merchant's address</ParamField>
+        <ParamField body="value" type="string" required>Payment amount in USDC base units (6 decimals)</ParamField>
+        <ParamField body="validAfter" type="string" required>Unix timestamp (earliest valid time)</ParamField>
+        <ParamField body="validBefore" type="string" required>Unix timestamp (latest valid time)</ParamField>
+        <ParamField body="nonce" type="string" required>Unique nonce to prevent replays</ParamField>
+      </ParamField>
+      <ParamField body="signature" type="string" required>EIP-712 signature hex string</ParamField>
+    </ParamField>
+    <ParamField body="network" type="string" required>Network identifier (e.g., `base-sepolia`, `base`)</ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="paymentHeader" type="string">
+  Base64url-encoded payment header string. Alternative to providing the `payment` object.
+</ParamField>
+
+<ParamField body="expectedTo" type="string">
+  Expected recipient address. If provided, verification fails if `to` doesn't match.
+</ParamField>
+
+<ParamField body="expectedValue" type="string">
+  Expected payment amount. If provided, verification fails if `value` doesn't match.
+</ParamField>
+
+## Response
+
+<ResponseField name="verified" type="boolean" required>
+  Whether the payment authorization is valid.
+</ResponseField>
+
+<ResponseField name="from" type="string">
+  Buyer's address (present when verified).
+</ResponseField>
+
+<ResponseField name="to" type="string">
+  Merchant's address (present when verified).
+</ResponseField>
+
+<ResponseField name="value" type="string">
+  Payment amount in USDC base units (present when verified).
+</ResponseField>
+
+<ResponseField name="chainId" type="number">
+  Chain ID of the network.
+</ResponseField>
+
+<ResponseField name="error" type="string">
+  Error message (present when verification fails).
+</ResponseField>
+
+## Examples
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.shulam.io/verify \
+  -H "Authorization: Bearer sk_test_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "paymentHeader": "eyJ0eXBlIjoiZXhhY3QiLCJuZXR3b3JrIjoiYmFzZS1zZXBvbGlhIi...",
+    "expectedTo": "0xMerchantAddress",
+    "expectedValue": "10000000"
+  }'
+```
+
+```javascript JavaScript
+const res = await fetch("https://api.shulam.io/verify", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer sk_test_...",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    paymentHeader: paymentResult.paymentHeader,
+    expectedTo: "0xMerchantAddress",
+    expectedValue: "10000000",
+  }),
+});
+
+const data = await res.json();
+if (data.verified) {
+  console.log(`Payment from ${data.from} for ${data.value} USDC verified`);
+}
+```
+
+```python Python
+import requests
+
+res = requests.post(
+    "https://api.shulam.io/verify",
+    headers={
+        "Authorization": "Bearer sk_test_...",
+        "Content-Type": "application/json",
+    },
+    json={
+        "paymentHeader": payment_header,
+        "expectedTo": "0xMerchantAddress",
+        "expectedValue": "10000000",
+    },
+)
+
+data = res.json()
+if data["verified"]:
+    print(f"Payment verified: {data['value']} USDC from {data['from']}")
+```
+</CodeGroup>
+
+### Success Response
+
+```json
+{
+  "verified": true,
+  "from": "0xBuyerAddress",
+  "to": "0xMerchantAddress",
+  "value": "10000000",
+  "chainId": 84532
+}
+```
+
+### Error Response
+
+```json
+{
+  "verified": false,
+  "error": "Invalid signature: recovered signer does not match from address"
+}
+```

@@ -1,0 +1,112 @@
+---
+title: "React Components"
+description: "Drop-in React components for Shulam payments"
+---
+
+# React Components
+
+Pre-built React components for adding Shulam payments to your app.
+
+```bash
+npm install @shulam/buyer-sdk
+```
+
+## ShulamButton
+
+A ready-to-use payment button that handles wallet connection, signing, and callbacks.
+
+```tsx
+import { ShulamButton } from "@shulam/buyer-sdk/react";
+
+function Checkout() {
+  return (
+    <ShulamButton
+      to="0xMerchantAddress"
+      amount="10000000"
+      network="base-sepolia"
+      onSuccess={(result) => {
+        console.log("Payment signed:", result.paymentHeader);
+      }}
+      onError={(error) => {
+        console.error("Payment failed:", error.message);
+      }}
+    >
+      Pay 10 USDC
+    </ShulamButton>
+  );
+}
+```
+
+### Props
+
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `to` | `string` | Yes | Merchant wallet address |
+| `amount` | `string` | Yes | Amount in USDC base units |
+| `network` | `string` | Yes | `"base-sepolia"` or `"base"` |
+| `onSuccess` | `(result: PayResult) => void` | Yes | Called when payment is signed |
+| `onError` | `(error: Error) => void` | No | Called on error |
+| `disabled` | `boolean` | No | Disable the button |
+| `className` | `string` | No | Custom CSS class |
+| `children` | `ReactNode` | No | Button label |
+
+## ShulamProvider
+
+Wrap your app to share a single SDK instance across components.
+
+```tsx
+import { ShulamProvider } from "@shulam/buyer-sdk/react";
+
+function App() {
+  return (
+    <ShulamProvider
+      network="base-sepolia"
+      facilitatorUrl="https://api.shulam.io"
+    >
+      <YourApp />
+    </ShulamProvider>
+  );
+}
+```
+
+## useShulam Hook
+
+Access the SDK instance from any component within the provider.
+
+```tsx
+import { useShulam } from "@shulam/buyer-sdk/react";
+
+function PaymentStatus() {
+  const { isConnected, address, connect, pay, getCashback } = useShulam();
+
+  if (!isConnected) {
+    return <button onClick={connect}>Connect Wallet</button>;
+  }
+
+  return (
+    <div>
+      <p>Connected: {address}</p>
+      <button onClick={() => pay({ to: "0x...", amount: "5000000" })}>
+        Pay 5 USDC
+      </button>
+    </div>
+  );
+}
+```
+
+## useCashback Hook
+
+Query and display cashback balance reactively.
+
+```tsx
+import { useCashback } from "@shulam/buyer-sdk/react";
+
+function CashbackBadge() {
+  const { balance, balanceFormatted, isLoading } = useCashback();
+
+  if (isLoading) return <span>Loading...</span>;
+  if (balance === "0") return null;
+
+  return <span>Cashback: {balanceFormatted}</span>;
+}
+```

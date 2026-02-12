@@ -1,0 +1,45 @@
+---
+title: "Changelog"
+description: "Recent updates and changes to the Shulam platform"
+---
+
+# Changelog
+
+## v1.0.0 — Initial Release
+
+**Facilitator API**
+- Payment verification via EIP-3009 signature recovery
+- Direct settlement on Base Sepolia and Base Mainnet
+- Deferred settlement (escrow mode)
+- Webhook infrastructure with retry delivery
+- Transaction status tracking
+- OFAC SDN list screening
+- Health check endpoint
+
+**Smart Contracts**
+- ShulamEscrow: deposit, release, refund with time-locks and dispute integration
+- CashbackVault: credit, withdraw with minimum claim threshold
+- DisputeResolver: open, respond, resolve, auto-resolve after timeout
+- Deployed on Base Sepolia
+
+**Compliance Service**
+- OFAC SDN address screening with auto-refresh
+- Chainalysis KYT risk scoring integration
+- Velocity monitoring (daily limits, rapid-fire detection, structuring patterns)
+- Alert management and resolution workflow
+- SAR draft generation
+- Audit logging
+
+**Buyer SDK**
+- Wallet connection (MetaMask, Coinbase Wallet, WalletConnect)
+- Payment authorization signing
+- React components (ShulamButton, ShulamProvider)
+- React hooks (useShulam, useCashback)
+- Cashback balance queries
+
+**Documentation**
+- Getting Started guides
+- API Reference for all endpoints
+- SDK documentation with TypeScript types
+- x402 protocol explainers
+- Integration guides (merchant, webhooks, testing, escrow)

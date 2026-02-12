@@ -1,0 +1,131 @@
+---
+title: "Buyer SDK Integration"
+description: "Add the Shulam payment button to your frontend"
+---
+
+# Buyer SDK Integration
+
+The `@shulam/buyer-sdk` provides a client-side SDK for creating and signing payment authorizations.
+
+## Installation
+
+<CodeGroup>
+```bash npm
+npm install @shulam/buyer-sdk
+```
+
+```bash yarn
+yarn add @shulam/buyer-sdk
+```
+
+```bash pnpm
+pnpm add @shulam/buyer-sdk
+```
+</CodeGroup>
+
+## Basic Usage
+
+```typescript
+import { ShulamPayment } from "@shulam/buyer-sdk";
+
+const shulam = new ShulamPayment({
+  network: "base-sepolia", // or "base" for mainnet
+  facilitatorUrl: "https://api.shulam.io",
+});
+
+// Connect buyer's wallet (MetaMask, WalletConnect, etc.)
+await shulam.connect();
+
+// Create a payment authorization
+const result = await shulam.pay({
+  to: "0xMerchantAddress",
+  amount: "10000000", // 10 USDC (6 decimals)
+});
+
+// Send paymentHeader to your backend for verification + settlement
+const response = await fetch("/api/checkout", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    paymentHeader: result.paymentHeader,
+    orderId: "order_123",
+  }),
+});
+```
+
+## React Integration
+
+```tsx
+import { ShulamButton } from "@shulam/buyer-sdk/react";
+
+function CheckoutPage({ orderId, amount, merchantAddress }) {
+  return (
+    <ShulamButton
+      to={merchantAddress}
+      amount={amount}
+      network="base-sepolia"
+      onSuccess={async (result) => {
+        // Send to your backend
+        await fetch("/api/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            paymentHeader: result.paymentHeader,
+            orderId,
+          }),
+        });
+      }}
+      onError={(error) => {
+        console.error("Payment failed:", error);
+      }}
+    >
+      Pay {(Number(amount) / 1e6).toFixed(2)} USDC
+    </ShulamButton>
+  );
+}
+```
+
+## Wallet Connection
+
+The SDK supports any EIP-1193 compatible wallet:
+
+```typescript
+// Auto-detect (MetaMask, Coinbase Wallet, etc.)
+await shulam.connect();
+
+// Specific provider
+await shulam.connect({ provider: window.ethereum });
+
+// Check connection status
+const connected = shulam.isConnected();
+const address = shulam.getAddress();
+
+// Disconnect
+shulam.disconnect();
+```
+
+## Cashback Balance
+
+Query the buyer's accumulated cashback:
+
+```typescript
+const cashback = await shulam.getCashback();
+console.log(`Cashback balance: ${cashback.balanceFormatted}`);
+// "Cashback balance: 2.50 USDC"
+```
+
+## Error Handling
+
+```typescript
+try {
+  const result = await shulam.pay({ to, amount });
+} catch (error) {
+  if (error.code === "USER_REJECTED") {
+    // User rejected the signature request
+  } else if (error.code === "INSUFFICIENT_BALANCE") {
+    // Buyer doesn't have enough USDC
+  } else if (error.code === "WALLET_NOT_CONNECTED") {
+    // Call shulam.connect() first
+  }
+}
+```

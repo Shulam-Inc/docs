@@ -1,0 +1,106 @@
+---
+title: "Concepts"
+description: "Understand the core concepts behind Shulam payments"
+---
+
+# Core Concepts
+
+## x402 Protocol
+
+The [x402 protocol](https://www.x402.org/) is Coinbase's open standard for internet-native payments using HTTP status code 402 (Payment Required). It enables:
+
+- **HTTP-native payments** — pay for resources using standard HTTP headers
+- **Stablecoin settlement** — payments are denominated in USDC
+- **Off-chain signatures** — buyers sign authorizations without gas costs
+- **On-chain settlement** — facilitators execute the actual transfer
+
+When a server returns HTTP 402, it includes payment details in the response. The client signs an authorization and resubmits the request with a payment header.
+
+## Facilitator
+
+A **facilitator** is a trusted third party that verifies payment signatures and executes on-chain settlements. Shulam operates as a facilitator in the x402 ecosystem.
+
+The facilitator:
+1. Receives signed payment authorizations from buyers
+2. Verifies the EIP-3009 signature is valid
+3. Runs compliance checks (OFAC screening, KYT risk scoring)
+4. Executes the USDC transfer on Base L2
+5. Notifies the merchant via webhooks
+
+## EIP-3009: TransferWithAuthorization
+
+[EIP-3009](https://eips.ethereum.org/EIPS/eip-3009) enables gasless USDC transfers. Instead of calling `transfer()` on-chain, the token holder signs an off-chain authorization that a third party can submit.
+
+```
+┌─────────┐                    ┌──────────────┐                    ┌──────────┐
+│  Buyer  │ ── signs auth ──▶  │  Facilitator │ ── submits tx ──▶  │  USDC    │
+│ (signer)│                    │  (relayer)   │                    │ Contract │
+└─────────┘                    └──────────────┘                    └──────────┘
+```
+
+The authorization includes:
+- **from** — the buyer's address
+- **to** — the merchant's address
+- **value** — payment amount in USDC (6 decimals)
+- **validAfter** — earliest time the transfer can execute
+- **validBefore** — latest time the transfer can execute
+- **nonce** — unique value to prevent replay attacks
+
+## USDC
+
+[USDC](https://www.circle.com/usdc) is a regulated stablecoin pegged 1:1 to the US dollar, issued by Circle. Shulam uses USDC on Base L2 for:
+
+- **Low gas costs** — Base L2 transactions cost fractions of a cent
+- **Instant finality** — settlements confirm in seconds
+- **Price stability** — no volatility risk for merchants or buyers
+- **Wide adoption** — USDC is the most widely used stablecoin
+
+| Network | USDC Contract |
+|---------|--------------|
+| Base Mainnet | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
+| Base Sepolia | `0x036CbD53842c5426634e7929541eC2318f3dCF7e` |
+
+## Settlement Modes
+
+Shulam supports two settlement modes:
+
+### Direct Settlement
+
+The default mode. USDC is transferred immediately from the buyer to the merchant when the facilitator calls `settle`.
+
+```
+Buyer ──USDC──▶ Merchant (instant)
+```
+
+### Deferred Settlement (Escrow)
+
+For marketplace, subscription, or milestone-based payments. USDC is held in the `ShulamEscrow` smart contract until release conditions are met.
+
+```
+Buyer ──USDC──▶ Escrow Contract ──(release)──▶ Merchant
+                                 ──(refund)──▶ Buyer
+```
+
+The escrow supports:
+- **Time-locked releases** — funds cannot be released before a specified time
+- **Dispute resolution** — buyers can open disputes within a 14-day window
+- **Automatic refunds** — unresolved disputes auto-refund after 30 days
+
+## Cashback
+
+Shulam distributes a portion of fee savings back to buyers as USDC cashback. After each successful settlement:
+
+1. A configurable cashback amount (e.g., 0.25% of payment value) is credited to the buyer
+2. Credits accumulate in the `CashbackVault` smart contract
+3. Buyers can withdraw accumulated cashback at any time (minimum 1 USDC)
+
+## Compliance
+
+All payments are screened for regulatory compliance:
+
+- **OFAC SDN screening** — addresses checked against the US Treasury sanctions list
+- **KYT risk scoring** — transaction risk assessed via Chainalysis
+- **Velocity monitoring** — detection of structuring patterns and rapid-fire transactions
+- **SAR generation** — suspicious activity reports for compliance officers
+
+Blocked transactions are rejected at the facilitator level before settlement.

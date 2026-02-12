@@ -1,0 +1,99 @@
+---
+title: "EIP-3009"
+description: "How TransferWithAuthorization enables gasless USDC payments"
+---
+
+# EIP-3009: TransferWithAuthorization
+
+[EIP-3009](https://eips.ethereum.org/EIPS/eip-3009) is the standard that makes gasless USDC transfers possible. It's the cryptographic foundation of x402 payments.
+
+## The Problem
+
+Traditional ERC-20 transfers require the sender to:
+1. Have ETH for gas
+2. Submit a transaction on-chain
+3. Wait for confirmation
+
+This creates a poor UX for non-crypto-native buyers.
+
+## The Solution
+
+EIP-3009 introduces `transferWithAuthorization()` — the token holder signs an off-chain message, and a relayer (the facilitator) submits the actual transaction.
+
+```solidity
+function transferWithAuthorization(
+    address from,
+    address to,
+    uint256 value,
+    uint256 validAfter,
+    uint256 validBefore,
+    bytes32 nonce,
+    uint8 v, bytes32 r, bytes32 s
+) external;
+```
+
+## Authorization Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `from` | `address` | The buyer (token holder) |
+| `to` | `address` | The merchant (recipient) |
+| `value` | `uint256` | Amount in token base units (USDC: 6 decimals) |
+| `validAfter` | `uint256` | Unix timestamp — earliest the transfer can execute |
+| `validBefore` | `uint256` | Unix timestamp — latest the transfer can execute |
+| `nonce` | `bytes32` | Random value to prevent replay attacks |
+
+## EIP-712 Typed Data
+
+The authorization is signed using EIP-712 structured data:
+
+```javascript
+const domain = {
+  name: "USD Coin",
+  version: "2",
+  chainId: 8453, // Base
+  verifyingContract: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC
+};
+
+const types = {
+  TransferWithAuthorization: [
+    { name: "from", type: "address" },
+    { name: "to", type: "address" },
+    { name: "value", type: "uint256" },
+    { name: "validAfter", type: "uint256" },
+    { name: "validBefore", type: "uint256" },
+    { name: "nonce", type: "bytes32" },
+  ],
+};
+
+const message = {
+  from: buyerAddress,
+  to: merchantAddress,
+  value: 10000000n, // 10 USDC
+  validAfter: 0n,
+  validBefore: BigInt(Math.floor(Date.now() / 1000) + 3600), // 1 hour
+  nonce: randomBytes32(),
+};
+
+const signature = await wallet.signTypedData(domain, types, message);
+```
+
+## Security Properties
+
+- **Replay protection** — each nonce can only be used once
+- **Time-bounded** — authorizations expire via `validBefore`
+- **Non-custodial** — the buyer's funds stay in their wallet until the facilitator executes
+- **Revocable** — the buyer can cancel by using the nonce in a different transaction
+
+## USDC Compatibility
+
+EIP-3009 is natively supported by Circle's USDC contract on all major chains including Base. No additional token approval is needed — the buyer only needs USDC balance.
+
+| Network | USDC supports EIP-3009 |
+|---------|----------------------|
+| Base Mainnet | Yes |
+| Base Sepolia | Yes |
+| Ethereum Mainnet | Yes |
+| Arbitrum | Yes |
+| Optimism | Yes |
+| Polygon | Yes |

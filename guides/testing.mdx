@@ -1,0 +1,101 @@
+---
+title: "Testing"
+description: "Test Shulam payments on Base Sepolia testnet"
+---
+
+# Testing Guide
+
+Test your integration on Base Sepolia before going to production.
+
+## Testnet Setup
+
+1. Use `sk_test_` API keys (from your dashboard)
+2. Connect to Base Sepolia (chain ID: `84532`)
+3. Get testnet USDC from the [Base Sepolia faucet](https://faucet.circle.com/)
+
+## Get Testnet USDC
+
+1. Visit [faucet.circle.com](https://faucet.circle.com/)
+2. Select **Base Sepolia** network
+3. Enter your wallet address
+4. Receive test USDC (Base Sepolia USDC: `0x036CbD53842c5426634e7929541eC2318f3dCF7e`)
+
+## Test a Payment End-to-End
+
+```bash
+# 1. Verify a test payment
+curl -X POST https://api.shulam.io/verify \
+  -H "Authorization: Bearer sk_test_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "paymentHeader": "YOUR_TEST_PAYMENT_HEADER",
+    "expectedTo": "0xMerchantWallet"
+  }'
+
+# 2. Settle on testnet
+curl -X POST https://api.shulam.io/settle \
+  -H "Authorization: Bearer sk_test_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "paymentHeader": "YOUR_TEST_PAYMENT_HEADER",
+    "mode": "direct"
+  }'
+
+# 3. Check transaction on explorer
+# https://sepolia.basescan.org/tx/0x...
+```
+
+## Test Escrow Flow
+
+```bash
+# 1. Settle with deferred mode
+curl -X POST https://api.shulam.io/settle \
+  -H "Authorization: Bearer sk_test_..." \
+  -H "Content-Type: application/json" \
+  -d '{ "paymentHeader": "...", "mode": "deferred" }'
+
+# 2. Check escrow status
+curl https://api.shulam.io/escrow/ESCROW_ID \
+  -H "Authorization: Bearer sk_test_..."
+
+# 3. Release to merchant
+curl -X POST https://api.shulam.io/escrow/release \
+  -H "Authorization: Bearer sk_test_..." \
+  -H "Content-Type: application/json" \
+  -d '{ "escrowId": "ESCROW_ID" }'
+```
+
+## Test Webhooks Locally
+
+Use [ngrok](https://ngrok.com/) to test webhooks on localhost:
+
+```bash
+# Start ngrok tunnel
+ngrok http 3000
+
+# Register the ngrok URL as your webhook endpoint
+curl -X POST https://api.shulam.io/webhooks/configure \
+  -H "Authorization: Bearer sk_test_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://abc123.ngrok.io/webhooks/shulam",
+    "events": ["payment.completed"]
+  }'
+```
+
+## Deployed Contracts (Base Sepolia)
+
+| Contract | Address |
+|----------|---------|
+| ShulamEscrow | `0x424f1bd78f743CB96f24D7cb5cAAa9E93b75dE16` |
+| CashbackVault | `0x2172ef9DBfeCFAd451BC81FcE017EB3872699c45` |
+| USDC | `0x036CbD53842c5426634e7929541eC2318f3dCF7e` |
+
+## Transitioning to Production
+
+When your tests pass:
+
+1. Switch API key from `sk_test_` to `sk_live_`
+2. Update wallet addresses to Base Mainnet
+3. Register production webhook URLs (HTTPS required)
+4. Start with a small real payment to confirm everything works

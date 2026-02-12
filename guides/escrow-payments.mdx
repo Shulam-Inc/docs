@@ -1,0 +1,114 @@
+---
+title: "Escrow Payments"
+description: "Use deferred settlement for marketplace and subscription payments"
+---
+
+# Escrow Payments
+
+Deferred settlement holds funds in the ShulamEscrow smart contract until release conditions are met.
+
+## When to Use Escrow
+
+- **Marketplaces** — hold funds until buyer confirms delivery
+- **Subscriptions** — collect upfront, release monthly
+- **Milestone payments** — release funds as milestones are completed
+- **Services** — hold until service is rendered
+
+## Escrow Flow
+
+```
+1. Buyer pays → funds deposited to escrow contract
+2. Merchant fulfills → you call release
+3. If dispute → buyer opens dispute within 14 days
+4. Admin or timeout → resolves in buyer or merchant favor
+```
+
+## Create an Escrow
+
+Settle with `mode: "deferred"`:
+
+```javascript
+const result = await fetch("https://api.shulam.io/settle", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer sk_test_...",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    paymentHeader,
+    mode: "deferred",
+  }),
+});
+
+const { escrowId, txHash } = await result.json();
+// Store escrowId with the order
+```
+
+## Release Funds
+
+When the merchant has fulfilled the order:
+
+```javascript
+await fetch("https://api.shulam.io/escrow/release", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer sk_test_...",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ escrowId }),
+});
+```
+
+## Refund Funds
+
+If the order needs to be cancelled:
+
+```javascript
+await fetch("https://api.shulam.io/escrow/refund", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer sk_test_...",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ escrowId }),
+});
+```
+
+## Dispute Resolution
+
+The DisputeResolver smart contract handles payment disputes:
+
+| Timeline | Action |
+|----------|--------|
+| 0-14 days | Buyer can open a dispute |
+| 0-7 days after dispute | Merchant can respond with evidence |
+| Any time | Admin can resolve in buyer or merchant favor |
+| 30 days after dispute | Auto-resolves in buyer's favor (refund) |
+
+### Escrow States
+
+```
+        ┌─────────┐
+        │  Held   │
+        └────┬────┘
+             │
+    ┌────────┼────────┐
+    ▼        ▼        ▼
+┌────────┐ ┌────────┐ ┌──────────┐
+│Released│ │Refunded│ │ Disputed │
+└────────┘ └────────┘ └────┬─────┘
+                           │
+                   ┌───────┼───────┐
+                   ▼               ▼
+              ┌────────┐      ┌────────┐
+              │Released│      │Refunded│
+              └────────┘      └────────┘
+```
+
+## Time-Locked Escrows
+
+Escrows can include a `releaseTime` that prevents early release:
+
+- Funds cannot be released before the specified timestamp
+- Useful for subscription billing (release on renewal date)
+- Refunds are always possible regardless of release time

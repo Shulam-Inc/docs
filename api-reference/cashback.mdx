@@ -1,0 +1,110 @@
+---
+title: "Cashback"
+description: "Query and withdraw buyer cashback balances"
+---
+
+# Cashback Endpoints
+
+Manage buyer cashback credits stored in the CashbackVault smart contract.
+
+## Get Cashback Balance
+
+Retrieve a buyer's accumulated cashback balance.
+
+<CodeGroup>
+```bash curl
+curl https://api.shulam.io/cashback/0xBuyerAddress \
+  -H "Authorization: Bearer sk_test_..."
+```
+
+```javascript JavaScript
+const res = await fetch("https://api.shulam.io/cashback/0xBuyerAddress", {
+  headers: { "Authorization": "Bearer sk_test_..." },
+});
+const data = await res.json();
+// { buyer: "0x...", balance: "2500000", balanceFormatted: "2.50 USDC" }
+```
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "buyer": "0xBuyerAddress",
+  "balance": "2500000",
+  "balanceFormatted": "2.50 USDC"
+}
+```
+
+---
+
+## Withdraw Cashback
+
+Withdraw accumulated cashback to the buyer's wallet.
+
+<ParamField body="buyer" type="string" required>
+  The buyer's wallet address.
+</ParamField>
+
+<ParamField body="amount" type="string" required>
+  Amount to withdraw in USDC base units (6 decimals). Minimum 1 USDC (`1000000`).
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.shulam.io/cashback/withdraw \
+  -H "Authorization: Bearer sk_test_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "buyer": "0xBuyerAddress",
+    "amount": "2500000"
+  }'
+```
+
+```javascript JavaScript
+const res = await fetch("https://api.shulam.io/cashback/withdraw", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer sk_test_...",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    buyer: "0xBuyerAddress",
+    amount: "2500000",
+  }),
+});
+```
+</CodeGroup>
+
+### Success Response
+
+```json
+{
+  "withdrawn": true,
+  "txHash": "0xabc123...",
+  "txLink": "https://sepolia.basescan.org/tx/0xabc123..."
+}
+```
+
+### Error Response
+
+```json
+{
+  "withdrawn": false,
+  "error": "Insufficient balance"
+}
+```
+
+## How Cashback Works
+
+1. After each successful payment settlement, the facilitator credits cashback to the buyer
+2. The cashback rate is configurable (default: 0.25% of payment value)
+3. Credits accumulate in the `CashbackVault` smart contract on-chain
+4. Buyers can withdraw when their balance exceeds the minimum claim threshold (1 USDC)
+
+## Webhook Events
+
+| Event | Trigger |
+|-------|---------|
+| `cashback.credited` | Cashback credited after settlement |
+| `cashback.withdrawn` | Buyer withdrew cashback |

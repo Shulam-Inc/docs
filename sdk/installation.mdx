@@ -1,0 +1,84 @@
+---
+title: "Installation"
+description: "Install the Shulam Buyer SDK"
+---
+
+# Installation
+
+## Package Managers
+
+<CodeGroup>
+```bash npm
+npm install @shulam/buyer-sdk
+```
+
+```bash yarn
+yarn add @shulam/buyer-sdk
+```
+
+```bash pnpm
+pnpm add @shulam/buyer-sdk
+```
+</CodeGroup>
+
+## Requirements
+
+- Node.js 18+
+- React 18+ (for React components)
+- An EIP-1193 compatible wallet (MetaMask, Coinbase Wallet, WalletConnect, etc.)
+
+## Peer Dependencies
+
+The SDK requires `viem` for Ethereum interactions:
+
+```bash
+npm install viem
+```
+
+## Quick Start
+
+```typescript
+import { ShulamPayment } from "@shulam/buyer-sdk";
+
+// Initialize
+const shulam = new ShulamPayment({
+  network: "base-sepolia",
+  facilitatorUrl: "https://api.shulam.io",
+});
+
+// Connect wallet
+await shulam.connect();
+
+// Make a payment
+const result = await shulam.pay({
+  to: "0xMerchantAddress",
+  amount: "10000000", // 10 USDC
+});
+
+console.log(result.paymentHeader); // Send this to your backend
+```
+
+## Framework Guides
+
+<CardGroup cols={2}>
+  <Card title="React" icon="react" href="/sdk/react-components">
+    Drop-in payment button and hooks for React apps.
+  </Card>
+  <Card title="Vanilla JS" icon="js" href="/sdk/shulam-payment">
+    Core SDK reference for any JavaScript environment.
+  </Card>
+</CardGroup>
+
+## CDN Usage
+
+For non-bundled environments:
+
+```html
+<script src="https://unpkg.com/@shulam/buyer-sdk/dist/index.umd.js"></script>
+<script>
+  const shulam = new ShulamBuyerSDK.ShulamPayment({
+    network: "base-sepolia",
+    facilitatorUrl: "https://api.shulam.io",
+  });
+</script>
+```

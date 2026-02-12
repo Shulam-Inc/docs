@@ -1,0 +1,100 @@
+---
+title: "Security"
+description: "Security model and best practices for x402 payments"
+---
+
+# Security
+
+## Protocol Security
+
+### Signature Verification
+
+Every payment authorization is verified using EIP-712 typed data recovery:
+
+1. The facilitator recovers the signer address from the signature
+2. The recovered address must match the `from` field
+3. The authorization parameters (amount, recipient, timing) are immutable once signed
+
+### Replay Protection
+
+- **Nonce uniqueness** — each EIP-3009 nonce can only be used once on-chain
+- **Time bounds** — `validAfter` and `validBefore` limit the authorization window
+- **Chain-specific** — signatures are bound to a specific chain ID via EIP-712 domain
+
+### Non-Custodial
+
+- The facilitator never holds buyer funds
+- USDC moves directly from buyer to merchant (or escrow contract)
+- The facilitator only has permission to execute the specific signed authorization
+
+## Compliance Security
+
+### OFAC Screening
+
+All payment addresses are screened against the US Treasury's OFAC SDN list before settlement:
+
+- Buyer address checked
+- Merchant address checked
+- Blocked payments return HTTP 403
+- SDN list refreshed every 6 hours
+
+### KYT Risk Scoring
+
+Transaction risk is assessed via Chainalysis KYT:
+
+| Risk Level | Score | Action |
+|-----------|-------|--------|
+| Low | 0-30 | Proceed |
+| Medium | 31-60 | Proceed with logging |
+| High | 61-80 | Review required |
+| Severe | 81-100 | Blocked |
+
+### Velocity Monitoring
+
+Automated detection of suspicious patterns:
+- Daily volume and count limits per address
+- Rapid-fire transaction detection
+- Structuring pattern detection (many small transactions just below thresholds)
+
+## Smart Contract Security
+
+### Escrow Contract
+
+- **Reentrancy-safe** — state changes before external calls
+- **Access-controlled** — only facilitator can deposit, only facilitator/merchant can release
+- **Immutable accounting** — `totalEscrowed` always matches contract USDC balance
+
+### Cashback Vault
+
+- **Solvency guaranteed** — vault balance always >= total unclaimed cashback
+- **Minimum claim threshold** — prevents dust withdrawal attacks
+- **Dual-auth withdrawal** — buyer or facilitator can initiate
+
+### Dispute Resolver
+
+- **Time-bounded disputes** — 14-day window to open, 30-day auto-resolution
+- **Buyer-favored default** — unresolved disputes refund to buyer
+- **Evidence on-chain** — merchant evidence hash stored immutably
+
+## Best Practices
+
+### For Merchants
+
+- Always verify payments server-side before fulfilling orders
+- Use `expectedTo` and `expectedValue` in verification to prevent manipulation
+- Implement webhook signature verification
+- Never trust client-side payment results alone
+
+### For Developers
+
+- Store API keys in environment variables or a secrets manager
+- Use HTTPS for all webhook endpoints
+- Implement idempotent order fulfillment
+- Set up monitoring for failed settlements and webhooks
+
+### For Buyers
+
+- Only sign authorizations on trusted websites
+- Review the payment details before signing
+- Set short `validFor` windows to limit exposure
+- Use a hardware wallet for large payments

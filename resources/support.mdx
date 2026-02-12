@@ -1,0 +1,61 @@
+---
+title: "Support"
+description: "Get help with your Shulam integration"
+---
+
+# Support
+
+## Getting Help
+
+<CardGroup cols={2}>
+  <Card title="Documentation" icon="book" href="/getting-started/introduction">
+    Search our docs for guides, API reference, and examples.
+  </Card>
+  <Card title="Discord Community" icon="discord" href="https://discord.gg/shulam">
+    Ask questions and connect with other developers.
+  </Card>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/Shulam-Inc">
+    Report bugs and request features.
+  </Card>
+  <Card title="Email Support" icon="envelope" href="mailto:support@shulam.io">
+    Contact our team directly for account or billing issues.
+  </Card>
+</CardGroup>
+
+## Common Issues
+
+### "Invalid signature" on verification
+
+- Ensure the buyer signed with the correct wallet and chain
+- Check that the USDC contract address matches the network
+- Verify the EIP-712 domain parameters match USDC's contract
+
+### "Nonce already used" on settlement
+
+- Each payment authorization can only be used once
+- If you see this error, the payment was already settled
+- Generate a new authorization for a new payment
+
+### Webhook not receiving events
+
+- Verify your endpoint is publicly accessible (not localhost)
+- Check that you registered the correct event types
+- Ensure your endpoint returns HTTP 200 within 30 seconds
+- Check webhook delivery logs in your dashboard
+
+### "Insufficient balance" on settlement
+
+- The buyer's USDC balance may have changed between signing and settlement
+- Settle quickly after the buyer signs to minimize this risk
+
+## Status Page
+
+Check the platform status at [status.shulam.io](https://status.shulam.io).
+
+## Contact
+
+| Channel | Use For |
+|---------|---------|
+| support@shulam.io | Account issues, KYB verification, billing |
+| Discord | Technical questions, community help |
+| GitHub Issues | Bug reports, feature requests |

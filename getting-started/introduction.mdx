@@ -1,0 +1,70 @@
+---
+title: "Introduction"
+description: "Accept stablecoin payments with zero merchant fees using the x402 protocol"
+---
+
+# Welcome to Shulam
+
+Shulam is a payment processing platform built on the [x402 protocol](https://www.x402.org/) that enables merchants to accept USDC stablecoin payments over HTTP with zero processing fees.
+
+## Why Shulam?
+
+<CardGroup cols={2}>
+  <Card title="Zero Merchant Fees" icon="circle-dollar-to-slot">
+    No 2.9% + 30c per transaction. Merchants keep 100% of the payment amount.
+  </Card>
+  <Card title="Instant Settlement" icon="bolt">
+    Payments settle on-chain in seconds, not days. No chargebacks.
+  </Card>
+  <Card title="Built on x402" icon="shield-check">
+    Uses Coinbase's x402 HTTP payment protocol — the new internet standard for payments.
+  </Card>
+  <Card title="Buyer Cashback" icon="piggy-bank">
+    Buyers earn USDC cashback on every purchase, funded by the fee savings.
+  </Card>
+</CardGroup>
+
+## How It Works
+
+Shulam acts as a **facilitator** in the x402 payment flow. When a buyer makes a payment:
+
+1. The buyer signs an EIP-3009 `TransferWithAuthorization` off-chain
+2. Shulam verifies the signature and compliance checks
+3. The payment is settled on Base L2 (or escrowed for deferred payments)
+4. The merchant receives USDC directly to their wallet
+5. The buyer earns cashback automatically
+
+```
+Buyer → signs authorization → Shulam Facilitator → settles on-chain → Merchant
+                                      ↓
+                              OFAC/KYT screening
+                              Cashback distribution
+                              Webhook notifications
+```
+
+## Architecture
+
+| Component | Purpose |
+|-----------|---------|
+| **Facilitator API** | Core payment verification and settlement service |
+| **Smart Contracts** | Escrow, cashback vault, and dispute resolution on Base L2 |
+| **Compliance Service** | OFAC screening, KYT risk scoring, velocity monitoring |
+| **Buyer SDK** | Client-side SDK for signing payment authorizations |
+
+## Supported Networks
+
+| Network | Status | USDC Address |
+|---------|--------|-------------|
+| Base Mainnet | Production | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
+| Base Sepolia | Testnet | `0x036CbD53842c5426634e7929541eC2318f3dCF7e` |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/getting-started/quickstart">
+    Get your first test payment working in 15 minutes.
+  </Card>
+  <Card title="Concepts" icon="book" href="/getting-started/concepts">
+    Understand x402, EIP-3009, and the facilitator model.
+  </Card>
+</CardGroup>

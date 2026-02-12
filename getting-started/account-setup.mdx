@@ -1,0 +1,104 @@
+---
+title: "Account Setup"
+description: "Create your merchant account and configure your integration"
+---
+
+# Account Setup
+
+## Create a Merchant Account
+
+1. Visit [app.shulam.io](https://app.shulam.io) and click **Sign Up**
+2. Provide your business details (name, website, business type)
+3. Complete KYB (Know Your Business) verification
+4. Set your receiving wallet address (any EVM-compatible wallet)
+
+<Warning>
+Your receiving wallet must be able to accept USDC on Base. Make sure you're not using a CEX deposit address that doesn't support Base L2.
+</Warning>
+
+## Generate API Keys
+
+After account verification, generate your API credentials:
+
+1. Navigate to **Settings > API Keys**
+2. Click **Create New Key**
+3. Choose your environment:
+   - **Test** — for Base Sepolia testnet
+   - **Live** — for Base Mainnet production
+
+Your API key will look like:
+```
+Test: sk_test_a1b2c3d4e5f6...
+Live: sk_live_a1b2c3d4e5f6...
+```
+
+<Warning>
+Store your API key securely. Never expose it in client-side code or commit it to version control.
+</Warning>
+
+## Environment Configuration
+
+Set up your environment variables:
+
+```bash .env
+# Shulam API
+SHULAM_API_KEY=sk_test_...
+SHULAM_API_URL=https://api.shulam.io
+
+# Your wallet
+MERCHANT_WALLET=0xYourWalletAddress
+
+# Webhooks (optional)
+SHULAM_WEBHOOK_SECRET=whsec_...
+```
+
+## Configure Webhooks
+
+Register a webhook endpoint to receive real-time payment events:
+
+```bash
+curl -X POST https://api.shulam.io/webhooks/configure \
+  -H "Authorization: Bearer sk_test_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://yoursite.com/webhooks/shulam",
+    "events": [
+      "payment.completed",
+      "payment.failed",
+      "escrow.deposited",
+      "escrow.released",
+      "escrow.refunded",
+      "cashback.credited"
+    ],
+    "secret": "whsec_your_secret"
+  }'
+```
+
+See the [Webhooks Guide](/guides/webhooks) for details on event types and signature verification.
+
+## Test Your Setup
+
+Verify your integration is working:
+
+```bash
+# Check API connectivity
+curl https://api.shulam.io/health \
+  -H "Authorization: Bearer sk_test_..."
+
+# Expected response:
+# { "status": "ok", "service": "shulam-facilitator" }
+```
+
+## Going Live
+
+When you're ready to accept real payments:
+
+1. Switch from `sk_test_` to `sk_live_` API keys
+2. Update your facilitator URL if using a custom domain
+3. Ensure your wallet is on Base Mainnet
+4. Configure production webhook endpoints
+5. Test with a small real payment before launching
+
+<Info>
+No code changes are needed between testnet and mainnet — just swap the API key and wallet addresses.
+</Info>

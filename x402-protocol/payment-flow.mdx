@@ -1,0 +1,90 @@
+---
+title: "Payment Flow"
+description: "Step-by-step breakdown of an x402 payment through Shulam"
+---
+
+# Payment Flow
+
+A detailed walkthrough of what happens during a Shulam payment.
+
+## Direct Payment Flow
+
+```
+Time ─────────────────────────────────────────────────────────────────────▶
+
+Buyer                    Merchant Server           Shulam Facilitator        Base L2
+  │                            │                          │                    │
+  │─── 1. Request resource ───▶│                          │                    │
+  │◀── 2. HTTP 402 ───────────│                          │                    │
+  │                            │                          │                    │
+  │ 3. Sign EIP-3009 auth     │                          │                    │
+  │    (off-chain, gasless)    │                          │                    │
+  │                            │                          │                    │
+  │─── 4. Resubmit with ─────▶│                          │                    │
+  │    X-PAYMENT header        │                          │                    │
+  │                            │─── 5. POST /verify ─────▶│                    │
+  │                            │◀── 6. { verified } ─────│                    │
+  │                            │                          │                    │
+  │                            │─── 7. POST /settle ─────▶│                    │
+  │                            │                          │── 8. OFAC check ──│
+  │                            │                          │── 9. Submit tx ───▶│
+  │                            │                          │◀── 10. Confirm ───│
+  │                            │◀── 11. { settled } ─────│                    │
+  │                            │                          │                    │
+  │◀── 12. Deliver resource ──│                          │── 13. Webhook ───▶│
+  │                            │                          │── 14. Cashback ──▶│
+  │                            │                          │                    │
+```
+
+### Step Details
+
+| Step | Actor | Action |
+|------|-------|--------|
+| 1 | Buyer | Requests a paid resource (e.g., API call, download, subscription) |
+| 2 | Server | Returns HTTP 402 with payment details |
+| 3 | Buyer | Signs an EIP-3009 authorization off-chain (no gas) |
+| 4 | Buyer | Resubmits request with `X-PAYMENT` header |
+| 5-6 | Server | Forwards to Shulam for signature verification |
+| 7 | Server | Requests settlement |
+| 8 | Shulam | Screens addresses against OFAC SDN list |
+| 9-10 | Shulam | Submits `transferWithAuthorization` to USDC contract on Base |
+| 11 | Shulam | Returns settlement result with tx hash |
+| 12 | Server | Delivers the resource to the buyer |
+| 13 | Shulam | Dispatches webhook notification |
+| 14 | Shulam | Credits cashback to buyer's vault balance |
+
+## Deferred (Escrow) Flow
+
+For deferred payments, step 9 deposits to the escrow contract instead of transferring directly:
+
+```
+Settle (mode: "deferred")
+   │
+   ▼
+ShulamEscrow.deposit()  ──▶  Funds held in contract
+   │
+   ├── release()  ──▶  Merchant receives USDC
+   │
+   └── refund()   ──▶  Buyer receives USDC back
+```
+
+## Timing
+
+| Phase | Duration |
+|-------|----------|
+| Signature creation | Instant (off-chain) |
+| Verification | < 100ms |
+| OFAC screening | < 200ms |
+| On-chain settlement | 2-5 seconds (Base L2) |
+| Webhook delivery | < 1 second |
+| **Total end-to-end** | **< 10 seconds** |
+
+## Failure Scenarios
+
+| Failure | Handling |
+|---------|----------|
+| Invalid signature | Rejected at verification — no on-chain cost |
+| OFAC blocked | Rejected before settlement — returns 403 |
+| Insufficient USDC balance | Reverts on-chain — marked as retryable |
+| Nonce already used | Rejected on-chain — non-retryable |
+| Network congestion | Retried automatically — marked as retryable |

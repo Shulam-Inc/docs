@@ -1,0 +1,82 @@
+---
+title: "FAQ"
+description: "Frequently asked questions about Shulam payments"
+---
+
+# FAQ
+
+## General
+
+<AccordionGroup>
+  <Accordion title="What is Shulam?">
+    Shulam is a payment processing platform that lets merchants accept USDC stablecoin payments over HTTP with zero processing fees. It's built on Coinbase's x402 protocol and settles payments on Base L2.
+  </Accordion>
+
+  <Accordion title="How is Shulam different from Stripe?">
+    Stripe charges 2.9% + $0.30 per transaction. Shulam charges 0%. Payments settle in seconds instead of days, and there are no chargebacks — disputes are handled via smart contract escrow.
+  </Accordion>
+
+  <Accordion title="What are the fees?">
+    Zero merchant processing fees. Buyers pay minimal gas costs on Base L2 (fractions of a cent), which are covered by the facilitator in most cases.
+  </Accordion>
+
+  <Accordion title="What networks are supported?">
+    Base Mainnet (production) and Base Sepolia (testnet). Additional chains are planned.
+  </Accordion>
+</AccordionGroup>
+
+## Payments
+
+<AccordionGroup>
+  <Accordion title="What currency are payments in?">
+    All payments are in USDC, a regulated stablecoin pegged 1:1 to the US dollar. No volatile cryptocurrencies are involved.
+  </Accordion>
+
+  <Accordion title="How fast do payments settle?">
+    Direct payments settle in 2-5 seconds on Base L2. Escrow payments are held until explicitly released.
+  </Accordion>
+
+  <Accordion title="Can payments be reversed?">
+    Direct payments are final once settled on-chain. Escrow payments can be refunded before release. There is no equivalent of credit card chargebacks.
+  </Accordion>
+
+  <Accordion title="Do buyers need to own cryptocurrency?">
+    Buyers need USDC in their wallet. They can acquire USDC through Coinbase, Circle, or other on-ramps. No ETH is needed — signing is gasless.
+  </Accordion>
+
+  <Accordion title="What wallets are supported?">
+    Any EIP-1193 compatible wallet: MetaMask, Coinbase Wallet, WalletConnect-compatible wallets, and hardware wallets like Ledger and Trezor.
+  </Accordion>
+</AccordionGroup>
+
+## Escrow & Disputes
+
+<AccordionGroup>
+  <Accordion title="How does escrow work?">
+    Deferred payments deposit USDC into the ShulamEscrow smart contract. Funds are released to the merchant when conditions are met, or refunded to the buyer if needed.
+  </Accordion>
+
+  <Accordion title="How are disputes handled?">
+    Buyers can open disputes within 14 days. Merchants have 7 days to respond with evidence. An admin resolves the dispute, or it auto-resolves in the buyer's favor after 30 days.
+  </Accordion>
+
+  <Accordion title="What is cashback?">
+    Buyers earn USDC cashback on every purchase (default 0.25% of payment value). Cashback accumulates in the CashbackVault contract and can be withdrawn when the balance exceeds 1 USDC.
+  </Accordion>
+</AccordionGroup>
+
+## Technical
+
+<AccordionGroup>
+  <Accordion title="What is EIP-3009?">
+    EIP-3009 (TransferWithAuthorization) allows gasless USDC transfers. The buyer signs an off-chain message, and a relayer submits the transaction. See the [EIP-3009 explainer](/x402-protocol/eip-3009).
+  </Accordion>
+
+  <Accordion title="Is the facilitator custodial?">
+    No. The facilitator never holds buyer or merchant funds. USDC moves directly from the buyer's wallet to the merchant (or escrow contract) via the USDC smart contract.
+  </Accordion>
+
+  <Accordion title="What happens if the facilitator goes down?">
+    Existing escrow funds remain safely in the smart contract. They can be released or refunded through direct contract interaction. New payments would need to wait for the facilitator to recover.
+  </Accordion>
+</AccordionGroup>

@@ -1,0 +1,145 @@
+---
+title: "Escrow"
+description: "Manage escrowed payment funds"
+---
+
+# Escrow Endpoints
+
+Manage deferred payments held in the ShulamEscrow smart contract.
+
+## Release Escrow
+
+<ParamField body="escrowId" type="string" required>
+  The escrow ID returned from a deferred settlement.
+</ParamField>
+
+Release escrowed funds to the merchant.
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.shulam.io/escrow/release \
+  -H "Authorization: Bearer sk_test_..." \
+  -H "Content-Type: application/json" \
+  -d '{ "escrowId": "0x9876543210fedcba..." }'
+```
+
+```javascript JavaScript
+const res = await fetch("https://api.shulam.io/escrow/release", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer sk_test_...",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ escrowId: "0x9876543210fedcba..." }),
+});
+
+const data = await res.json();
+// { released: true, txId: "...", txHash: "0x...", txLink: "...", escrowId: "..." }
+```
+</CodeGroup>
+
+### Success Response
+
+```json
+{
+  "released": true,
+  "txId": "a1b2c3d4-...",
+  "txHash": "0xabc123...",
+  "txLink": "https://sepolia.basescan.org/tx/0xabc123...",
+  "escrowId": "0x9876543210fedcba..."
+}
+```
+
+---
+
+## Refund Escrow
+
+<ParamField body="escrowId" type="string" required>
+  The escrow ID to refund.
+</ParamField>
+
+Refund escrowed funds back to the buyer.
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.shulam.io/escrow/refund \
+  -H "Authorization: Bearer sk_test_..." \
+  -H "Content-Type: application/json" \
+  -d '{ "escrowId": "0x9876543210fedcba..." }'
+```
+
+```javascript JavaScript
+const res = await fetch("https://api.shulam.io/escrow/refund", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer sk_test_...",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ escrowId: "0x9876543210fedcba..." }),
+});
+```
+</CodeGroup>
+
+### Success Response
+
+```json
+{
+  "refunded": true,
+  "txId": "b2c3d4e5-...",
+  "txHash": "0xdef456...",
+  "txLink": "https://sepolia.basescan.org/tx/0xdef456...",
+  "escrowId": "0x9876543210fedcba..."
+}
+```
+
+---
+
+## Get Escrow Status
+
+Retrieve the current status of an escrow from the smart contract.
+
+<CodeGroup>
+```bash curl
+curl https://api.shulam.io/escrow/0x9876543210fedcba... \
+  -H "Authorization: Bearer sk_test_..."
+```
+
+```javascript JavaScript
+const res = await fetch(
+  "https://api.shulam.io/escrow/0x9876543210fedcba...",
+  { headers: { "Authorization": "Bearer sk_test_..." } }
+);
+const data = await res.json();
+```
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "escrowId": "0x9876543210fedcba...",
+  "buyer": "0xBuyerAddress",
+  "merchant": "0xMerchantAddress",
+  "amount": "10000000",
+  "status": "Held",
+  "createdAt": 1700000000,
+  "releaseTime": 1700604800
+}
+```
+
+### Escrow States
+
+| Status | Description |
+|--------|------------|
+| `Held` | Funds are locked in escrow |
+| `Released` | Funds transferred to merchant |
+| `Refunded` | Funds returned to buyer |
+| `Disputed` | Dispute opened, awaiting resolution |
+
+## Webhook Events
+
+| Event | Trigger |
+|-------|---------|
+| `escrow.deposited` | Funds deposited into escrow |
+| `escrow.released` | Funds released to merchant |
+| `escrow.refunded` | Funds refunded to buyer |

@@ -1,0 +1,113 @@
+---
+title: "Webhooks"
+description: "Receive real-time payment notifications"
+---
+
+# Webhooks Guide
+
+Webhooks provide real-time HTTP notifications when payment events occur.
+
+## Setup
+
+Register a webhook endpoint to start receiving events:
+
+```bash
+curl -X POST https://api.shulam.io/webhooks/configure \
+  -H "Authorization: Bearer sk_test_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://yoursite.com/webhooks/shulam",
+    "events": [
+      "payment.completed",
+      "payment.failed",
+      "escrow.deposited",
+      "escrow.released",
+      "escrow.refunded",
+      "cashback.credited"
+    ],
+    "secret": "whsec_your_secret"
+  }'
+```
+
+## Handling Webhooks
+
+```javascript
+import express from "express";
+import crypto from "node:crypto";
+
+const app = express();
+
+app.post("/webhooks/shulam", express.json(), (req, res) => {
+  // 1. Verify signature
+  const signature = req.headers["x-shulam-signature"];
+  const payload = JSON.stringify(req.body);
+  const expected = crypto
+    .createHmac("sha256", process.env.SHULAM_WEBHOOK_SECRET)
+    .update(payload)
+    .digest("hex");
+
+  if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+    return res.status(401).send("Invalid signature");
+  }
+
+  // 2. Process event
+  const { type, data } = req.body;
+
+  switch (type) {
+    case "payment.completed":
+      console.log(`Payment settled: ${data.txHash}`);
+      break;
+    case "payment.failed":
+      console.log(`Payment failed: ${data.error}`);
+      break;
+    case "escrow.deposited":
+      console.log(`Escrow created: ${data.escrowId}`);
+      break;
+    case "escrow.released":
+      console.log(`Escrow released: ${data.escrowId}`);
+      break;
+    case "cashback.credited":
+      console.log(`Cashback: ${data.value} to ${data.from}`);
+      break;
+  }
+
+  // 3. Always respond 200 to acknowledge receipt
+  res.json({ received: true });
+});
+```
+
+## Event Types
+
+| Event | Payload Fields |
+|-------|---------------|
+| `payment.completed` | `txHash`, `txLink`, `from`, `to`, `value`, `chainId` |
+| `payment.failed` | `from`, `to`, `value`, `chainId`, `error` |
+| `payment.blocked` | `from`, `to`, `value`, `chainId`, `error` |
+| `escrow.deposited` | `txHash`, `txLink`, `from`, `to`, `value`, `chainId`, `escrowId` |
+| `escrow.released` | `escrowId`, `txHash`, `txLink` |
+| `escrow.refunded` | `escrowId`, `txHash`, `txLink` |
+| `cashback.credited` | `from`, `value`, `txHash`, `txLink`, `chainId` |
+| `cashback.withdrawn` | `from`, `value`, `txHash`, `txLink` |
+
+## Retry Policy
+
+Failed deliveries are retried with exponential backoff:
+
+| Attempt | Delay |
+|---------|-------|
+| 1 | Immediate |
+| 2 | 30 seconds |
+| 3 | 5 minutes |
+| 4 | 30 minutes |
+| 5 | 2 hours |
+
+<Info>
+Always return HTTP 200 quickly. Process webhooks asynchronously to avoid timeouts.
+</Info>
+
+## Best Practices
+
+1. **Verify signatures** — always validate the `X-Shulam-Signature` header
+2. **Respond quickly** — return 200 before processing (use a job queue)
+3. **Handle duplicates** — webhooks may be delivered more than once; use `txHash` for idempotency
+4. **Monitor failures** — set up alerts for failed webhook deliveries

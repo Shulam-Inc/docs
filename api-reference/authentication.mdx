@@ -1,0 +1,71 @@
+---
+title: "Authentication"
+description: "Authenticate your API requests to Shulam"
+---
+
+# Authentication
+
+All API requests require authentication via a Bearer token in the `Authorization` header.
+
+## API Keys
+
+Shulam uses API keys to authenticate requests. Each key is scoped to an environment:
+
+| Key Prefix | Environment | Network |
+|-----------|-------------|---------|
+| `sk_test_` | Sandbox | Base Sepolia |
+| `sk_live_` | Production | Base Mainnet |
+
+## Making Authenticated Requests
+
+Include your API key in the `Authorization` header:
+
+<CodeGroup>
+```bash curl
+curl https://api.shulam.io/health \
+  -H "Authorization: Bearer sk_test_your_api_key"
+```
+
+```javascript JavaScript
+const response = await fetch("https://api.shulam.io/health", {
+  headers: {
+    "Authorization": "Bearer sk_test_your_api_key",
+  },
+});
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    "https://api.shulam.io/health",
+    headers={"Authorization": "Bearer sk_test_your_api_key"},
+)
+```
+
+```go Go
+req, _ := http.NewRequest("GET", "https://api.shulam.io/health", nil)
+req.Header.Set("Authorization", "Bearer sk_test_your_api_key")
+resp, _ := http.DefaultClient.Do(req)
+```
+</CodeGroup>
+
+## Security Best Practices
+
+<Warning>
+Never expose your API key in client-side code, public repositories, or browser network requests.
+</Warning>
+
+- Store keys in environment variables or a secrets manager
+- Use `sk_test_` keys during development, `sk_live_` in production
+- Rotate keys periodically via the dashboard
+- Use webhook secrets for verifying incoming webhook payloads
+
+## Rate Limits
+
+| Environment | Rate Limit |
+|-------------|-----------|
+| Sandbox | 100 requests/minute |
+| Production | 1,000 requests/minute |
+
+Rate-limited responses return HTTP 429 with a `Retry-After` header.

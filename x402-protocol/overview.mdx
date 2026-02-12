@@ -1,0 +1,83 @@
+---
+title: "x402 Protocol Overview"
+description: "Understanding the HTTP 402 payment protocol by Coinbase"
+---
+
+# x402 Protocol Overview
+
+The [x402 protocol](https://www.x402.org/) is an open standard by Coinbase that enables internet-native payments using the HTTP 402 status code.
+
+## What is x402?
+
+HTTP 402 ("Payment Required") has been reserved since 1999 but never had a standard implementation. The x402 protocol defines how to:
+
+1. Request payment via HTTP 402 responses
+2. Sign payment authorizations off-chain (no gas for the buyer)
+3. Submit payments via HTTP headers
+4. Settle payments on-chain through a facilitator
+
+## How It Works
+
+```
+┌──────────┐         ┌──────────┐         ┌──────────────┐         ┌──────────┐
+│  Client  │────1───▶│  Server  │         │  Facilitator │         │   Chain  │
+│ (Buyer)  │◀───2────│(Merchant)│         │   (Shulam)   │         │  (Base)  │
+│          │────3───▶│          │────4───▶│              │────5───▶│          │
+│          │◀───6────│          │◀───6────│              │         │          │
+└──────────┘         └──────────┘         └──────────────┘         └──────────┘
+```
+
+| Step | Action |
+|------|--------|
+| 1 | Client requests a paid resource |
+| 2 | Server returns HTTP 402 with payment details (amount, token, network) |
+| 3 | Client signs an EIP-3009 authorization and resubmits with `X-PAYMENT` header |
+| 4 | Server forwards the payment to the facilitator for verification |
+| 5 | Facilitator settles the USDC transfer on-chain |
+| 6 | Server grants access to the resource |
+
+## Key Properties
+
+- **Gasless for buyers** — signing an authorization costs nothing
+- **Stablecoin-based** — payments in USDC, not volatile crypto
+- **HTTP-native** — works with existing HTTP infrastructure
+- **Open standard** — any facilitator can implement it
+- **Chain-agnostic** — designed for multi-chain support (Base, Ethereum, etc.)
+
+## The 402 Response
+
+When a server requires payment, it returns:
+
+```http
+HTTP/1.1 402 Payment Required
+X-PAYMENT-DETAILS: {
+  "scheme": "exact",
+  "network": "base",
+  "token": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  "amount": "10000000",
+  "recipient": "0xMerchantAddress",
+  "facilitator": "https://api.shulam.io"
+}
+```
+
+## The Payment Header
+
+The client signs an authorization and includes it in the request:
+
+```http
+POST /api/premium-content HTTP/1.1
+X-PAYMENT: eyJ0eXBlIjoiZXhhY3QiLCJuZXR3b3JrIjoiYmFzZSIsInBheWxvYWQiOi...
+```
+
+The `X-PAYMENT` header contains a base64url-encoded JSON object with:
+- The EIP-3009 transfer authorization
+- The EIP-712 signature
+- The network identifier
+
+## x402 V2
+
+The V2 specification (2025) adds support for:
+- Multiple facilitator selection
+- Enhanced compliance metadata
+- Subscription payment patterns
+- Cross-chain settlement
