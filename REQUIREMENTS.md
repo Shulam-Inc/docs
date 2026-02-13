@@ -110,6 +110,26 @@ This document defines user journeys that span multiple repositories and maps eac
 
 ---
 
+## UJ-7: Agent-to-Agent Commerce
+
+> As an AI agent, I want to discover, evaluate, and pay for resources from other agents so that I can autonomously access paid APIs and data.
+
+| Step | Description | Owner | Status |
+|------|-------------|-------|--------|
+| UJ-7.1 | Merchant serves `/.well-known/x402-manifest.json` with endpoint pricing | **merchant-sdk** | Planned |
+| UJ-7.2 | Buyer agent fetches and parses x402 manifest for discovery | **buyer-sdk** | Planned |
+| UJ-7.3 | Buyer agent compares providers by price and reputation | **buyer-sdk** + **souls** | Planned |
+| UJ-7.4 | Buyer agent signs EIP-3009 authorization headlessly (no wallet UI) | **buyer-sdk** | Planned |
+| UJ-7.5 | Buyer agent auto-retries on HTTP 402 with signed X-PAYMENT header | **buyer-sdk** | Planned |
+| UJ-7.6 | Budget manager enforces per-request, per-session, and global limits | **buyer-sdk** | Planned |
+| UJ-7.7 | Facilitator settles payment between agent wallets | **facilitator** | Done |
+| UJ-7.8 | Agent identity verified via SBT in AgentRegistry | **souls** | Planned |
+| UJ-7.9 | Reputation oracle updates score after settlement | **souls** | Planned |
+| UJ-7.10 | AI model discovers and pays via MCP tools (shulam_pay, shulam_discover) | **buyer-sdk** | Planned |
+| UJ-7.11 | Merchant scaffolds x402-enabled API via `npx @shulam/merchant-sdk init` | **merchant-sdk** | Planned |
+
+---
+
 ## Per-Repo Requirement Summary
 
 ### facilitator (`Shulam-Inc/facilitator`)
@@ -155,6 +175,12 @@ This document defines user journeys that span multiple repositories and maps eac
 | Encode X-PAYMENT header (base64url) | UJ-1.4 | Planned |
 | Read cashback balance from vault | UJ-4.1 | Planned |
 | React components (PayButton, CashbackBadge) | UJ-1.2 | Planned |
+| Headless ShulamAgent (no wallet UI, private key signer) | UJ-7.4 | Planned |
+| autoPayFetch — auto-retry on HTTP 402 | UJ-7.5 | Planned |
+| BudgetManager — per-request/session/global limits | UJ-7.6 | Planned |
+| x402 manifest discovery and provider comparison | UJ-7.2, UJ-7.3 | Planned |
+| MCP server (shulam_pay, shulam_discover, shulam_balance) | UJ-7.10 | Planned |
+| Agent identity header (SBT attestation) | UJ-7.8 | Planned |
 
 ### merchant-dashboard (`Shulam-Inc/merchant-dashboard`)
 
@@ -171,9 +197,12 @@ This document defines user journeys that span multiple repositories and maps eac
 
 | Requirement | Source Journey | Status |
 |-------------|---------------|--------|
-| Soul-bound token issuance | — | Planned |
+| Agent orchestration (18 Apostles harness) | — | Planned |
+| Soul-bound token (SBT) agent identity | UJ-7.8 | Planned |
+| AgentRegistry contract (register, verify, revoke) | UJ-7.8 | Planned |
+| ReputationOracle contract (score, decay, disputes) | UJ-7.9 | Planned |
 | Identity attestation (KYC link) | — | Planned |
-| Reputation scoring based on payment history | — | Planned |
+| Reputation scoring based on payment history | UJ-7.3, UJ-7.9 | Planned |
 
 ### docs (`Shulam-Inc/docs`)
 
@@ -186,6 +215,10 @@ This document defines user journeys that span multiple repositories and maps eac
 | Webhook integration guide | UJ-3.7 | Planned |
 | Update payment-flow.mdx for fee model | UJ-1.8 | TODO |
 | Update concepts.mdx settlement diagram | UJ-1.8 | TODO |
+| x402 agent-to-agent protocol spec | UJ-7 | Planned |
+| x402-manifest.json specification | UJ-7.1 | Planned |
+| Agent mode quickstart (ShulamAgent + budget) | UJ-7.4-7.6 | Planned |
+| MCP integration guide (Claude Desktop config) | UJ-7.10 | Planned |
 
 ### website (`Shulam-Inc/website`)
 
@@ -217,6 +250,9 @@ This document defines user journeys that span multiple repositories and maps eac
 | Webhook signature verification helper | UJ-3.7 | Planned |
 | Next.js middleware adapter | UJ-3.3 | Planned |
 | Dynamic pricing callback | UJ-3.5 | Planned |
+| Project scaffolder (`npx @shulam/merchant-sdk init`) | UJ-3.3, UJ-7.11 | Planned |
+| x402 capability manifest (`/.well-known/x402-manifest.json`) | UJ-7.1 | Planned |
+| Manifest generator (introspect routes → manifest) | UJ-7.1 | Planned |
 
 ### testkit (`Shulam-Inc/testkit`)
 
@@ -235,5 +271,6 @@ This document defines user journeys that span multiple repositories and maps eac
 
 | Date | Change |
 |------|--------|
+| 2026-02-13 | Added UJ-7 (agent-to-agent commerce). Updated buyer-sdk, merchant-sdk, souls, docs requirements. |
 | 2026-02-13 | Added merchant-sdk, testkit, and admin-dashboard repos and requirements. |
 | 2026-02-12 | Initial cross-repo requirements. Fee deduction (M8) complete in facilitator. |

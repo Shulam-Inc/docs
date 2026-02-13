@@ -43,13 +43,13 @@ Shulam is an x402 payment facilitator that enables internet-native USDC payments
 | **facilitator** | Service | Core x402 payment processing: verify, settle, webhooks, monitoring | contracts, compliance |
 | **contracts** | On-chain | Solidity: ShulamEscrow, CashbackVault, DisputeResolver | USDC (Base L2) |
 | **compliance** | Service | OFAC SDN screening, Chainalysis KYT, velocity monitoring, SAR | facilitator (called by) |
-| **buyer-sdk** | SDK | TypeScript SDK for wallets/dApps to construct and sign x402 payments | facilitator (API client) |
+| **buyer-sdk** | SDK | TypeScript SDK for wallets/dApps + headless agent mode + MCP tools | facilitator (API client), souls (reputation) |
 | **merchant-dashboard** | Frontend | Web UI: webhook management, transaction history, analytics, settings | facilitator (API client) |
-| **souls** | On-chain + Service | Soul-bound token identity and reputation attestations | contracts |
+| **souls** | On-chain + Service | Agent orchestration (18 Apostles), SBT identity, reputation oracle | contracts, facilitator |
 | **docs** | Content | Mintlify docs at docs.shulam.io: API reference, guides, protocol specs | All repos (documents them) |
 | **website** | Frontend | Marketing site at shulam.io | None |
 | **admin-dashboard** | Frontend | Internal ops: system health, fee tracking, escrow recovery, compliance review | facilitator, compliance |
-| **merchant-sdk** | SDK | Express/Next.js/Fastify middleware — one line of code to accept x402 payments | facilitator (API client) |
+| **merchant-sdk** | SDK | Express/Next.js/Fastify middleware, project scaffolder, x402 manifest | facilitator (API client) |
 | **testkit** | Dev tooling | Mock facilitator, test wallets, payment simulation, CLI tools | facilitator, buyer-sdk, merchant-sdk |
 
 ---
@@ -103,7 +103,34 @@ Step  Actor               Action                              Repo
 15    merchant-dashboard  Shows transaction in dashboard      merchant-dashboard
 ```
 
-*merchant-sdk does not yet exist — see "Future Repos" in REQUIREMENTS.md
+*merchant-sdk provides the 402 response builder and facilitator client
+
+---
+
+## Data Flow: Agent-to-Agent Payment
+
+```
+Step  Actor               Action                              Repo
+────  ──────────────────  ──────────────────────────────────  ──────────────
+ 1    Buyer agent         GET /.well-known/x402-manifest.json buyer-sdk/agent
+ 2    Merchant API        Returns manifest (endpoints, prices) merchant-sdk
+ 3    Buyer agent         Compares providers (price + reputation) buyer-sdk/agent
+ 4    Buyer agent         Checks reputation via ReputationOracle souls
+ 5    Buyer agent         Checks budget (per-request, session)  buyer-sdk/agent
+ 6    Buyer agent         GET /api/data (no payment header)    buyer-sdk/agent
+ 7    Merchant API        Returns HTTP 402 + payment details   merchant-sdk
+ 8    Buyer agent         Signs EIP-3009 (headless, private key) buyer-sdk/agent
+ 9    Buyer agent         Retries GET /api/data + X-PAYMENT    buyer-sdk/agent
+10    Merchant API        POST /verify → facilitator           merchant-sdk
+11    Facilitator         Validates signature + OFAC screen    facilitator
+12    Merchant API        POST /settle → facilitator           merchant-sdk
+13    Facilitator         Two-txn settlement (buyer→fac→merch) facilitator
+14    Facilitator         Updates ReputationOracle             souls
+15    Merchant API        Returns resource to buyer agent      merchant-sdk
+16    Buyer agent         Logs payment to spending history     buyer-sdk/agent
+```
+
+**AI model flow (MCP):** Steps 1-16 are orchestrated by the MCP server (`@shulam/buyer-sdk/mcp`). The AI calls `shulam_pay` or `shulam_discover` tools, and the MCP server delegates to `ShulamAgent` internally.
 
 ---
 
