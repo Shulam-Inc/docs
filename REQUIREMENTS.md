@@ -195,6 +195,17 @@ This document defines user journeys that span multiple repositories and maps eac
 | Pricing page showing fee structure | — | Planned |
 | Developer CTA linking to docs.shulam.io | — | Planned |
 
+### admin-dashboard (`Shulam-Inc/admin-dashboard`)
+
+| Requirement | Source Journey | Status |
+|-------------|---------------|--------|
+| System health metrics view (success rate, volume, fees) | UJ-6.1 | Planned |
+| Alert manager with resolve action | UJ-6.2, UJ-6.3 | Planned |
+| Fee & revenue tracking dashboard | UJ-6.1 | Planned |
+| Transaction explorer (search, filter, detail) | UJ-6 | Planned |
+| Escrow management (manual release/refund/recovery) | UJ-2.7 | Planned |
+| Compliance review (screening results, blocked tx, SARs) | UJ-5 | Planned |
+
 ---
 
 ## Future Repos (Candidates)
@@ -202,7 +213,6 @@ This document defines user journeys that span multiple repositories and maps eac
 | Repo | Rationale | Priority |
 |------|-----------|----------|
 | **merchant-sdk** | Server-side SDK (Express/Fastify middleware, webhook verification, payment request helpers). Currently merchants call the facilitator API directly — an SDK would reduce integration friction. | Medium |
-| **admin-dashboard** | Internal ops console for the Shulam team: fee configuration, manual escrow recovery, compliance review queue, system-wide monitoring. Currently ops use /metrics API directly. | Low |
 
 ---
 
@@ -210,4 +220,5 @@ This document defines user journeys that span multiple repositories and maps eac
 
 | Date | Change |
 |------|--------|
+| 2026-02-13 | Added admin-dashboard repo and requirements. |
 | 2026-02-12 | Initial cross-repo requirements. Fee deduction (M8) complete in facilitator. |

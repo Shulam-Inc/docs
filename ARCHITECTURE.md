@@ -48,6 +48,7 @@ Shulam is an x402 payment facilitator that enables internet-native USDC payments
 | **souls** | On-chain + Service | Soul-bound token identity and reputation attestations | contracts |
 | **docs** | Content | Mintlify docs at docs.shulam.io: API reference, guides, protocol specs | All repos (documents them) |
 | **website** | Frontend | Marketing site at shulam.io | None |
+| **admin-dashboard** | Frontend | Internal ops: system health, fee tracking, escrow recovery, compliance review | facilitator, compliance |
 
 ---
 
