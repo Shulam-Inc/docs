@@ -206,13 +206,28 @@ This document defines user journeys that span multiple repositories and maps eac
 | Escrow management (manual release/refund/recovery) | UJ-2.7 | Planned |
 | Compliance review (screening results, blocked tx, SARs) | UJ-5 | Planned |
 
----
+### merchant-sdk (`Shulam-Inc/merchant-sdk`)
 
-## Future Repos (Candidates)
+| Requirement | Source Journey | Status |
+|-------------|---------------|--------|
+| Express middleware: `paymentRequired(options)` | UJ-3.3, UJ-3.5 | Planned |
+| HTTP 402 response builder (x402 spec compliant) | UJ-3.5 | Planned |
+| X-PAYMENT header parsing and validation | UJ-1.4 | Planned |
+| Facilitator API client (verify + settle) | UJ-3.6 | Planned |
+| Webhook signature verification helper | UJ-3.7 | Planned |
+| Next.js middleware adapter | UJ-3.3 | Planned |
+| Dynamic pricing callback | UJ-3.5 | Planned |
 
-| Repo | Rationale | Priority |
-|------|-----------|----------|
-| **merchant-sdk** | Server-side SDK (Express/Fastify middleware, webhook verification, payment request helpers). Currently merchants call the facilitator API directly — an SDK would reduce integration friction. | Medium |
+### testkit (`Shulam-Inc/testkit`)
+
+| Requirement | Source Journey | Status |
+|-------------|---------------|--------|
+| Mock facilitator server (/verify, /settle, /status) | All | Planned |
+| Test wallet keypairs with EIP-3009 signing | UJ-1.3 | Planned |
+| Payment header generator (valid, expired, invalid) | UJ-1.4 | Planned |
+| Full payment flow simulator (402 → sign → settle) | UJ-1 | Planned |
+| Vitest/Jest test helpers | All | Planned |
+| CLI tools (serve, pay, sign) | All | Planned |
 
 ---
 
@@ -220,5 +235,5 @@ This document defines user journeys that span multiple repositories and maps eac
 
 | Date | Change |
 |------|--------|
-| 2026-02-13 | Added admin-dashboard repo and requirements. |
+| 2026-02-13 | Added merchant-sdk, testkit, and admin-dashboard repos and requirements. |
 | 2026-02-12 | Initial cross-repo requirements. Fee deduction (M8) complete in facilitator. |

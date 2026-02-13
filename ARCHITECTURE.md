@@ -49,6 +49,8 @@ Shulam is an x402 payment facilitator that enables internet-native USDC payments
 | **docs** | Content | Mintlify docs at docs.shulam.io: API reference, guides, protocol specs | All repos (documents them) |
 | **website** | Frontend | Marketing site at shulam.io | None |
 | **admin-dashboard** | Frontend | Internal ops: system health, fee tracking, escrow recovery, compliance review | facilitator, compliance |
+| **merchant-sdk** | SDK | Express/Next.js/Fastify middleware — one line of code to accept x402 payments | facilitator (API client) |
+| **testkit** | Dev tooling | Mock facilitator, test wallets, payment simulation, CLI tools | facilitator, buyer-sdk, merchant-sdk |
 
 ---
 
