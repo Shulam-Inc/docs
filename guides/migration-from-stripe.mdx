@@ -1,21 +1,22 @@
 ---
 title: "Migration from Stripe"
-description: "Replace Stripe with Shulam and save on processing fees"
+description: "Replace Stripe with Shulam — compliant USDC payments at 5 basis points"
 ---
 
 # Migration from Stripe
 
-Replace Stripe's 2.9% + 30c per transaction with Shulam's zero-fee USDC payments.
+Replace Stripe's 2.9% + 30c per transaction with Shulam's compliant USDC payments at just 5 basis points (0.05%).
 
 ## Fee Comparison
 
 | | Stripe | Shulam |
 |---|--------|--------|
-| Processing fee | 2.9% + $0.30 | 0% |
+| Processing fee | 2.9% + $0.30 | 0.05% (5 bps) |
 | International fee | +1.5% | 0% |
 | Settlement time | 2-7 business days | Seconds |
 | Chargebacks | $15 per dispute | N/A (escrow-based) |
-| Monthly cost on $100K revenue | ~$3,200 | $0 |
+| Compliance (OFAC/KYT) | Not included | Built-in |
+| Monthly cost on $100K revenue | ~$3,200 | $50 |
 
 ## Concept Mapping
 
@@ -61,7 +62,7 @@ function Checkout({ amount, orderId }) {
           });
         }}
       >
-        Pay {amount} USDC (0% fee)
+        Pay {amount} USDC
       </ShulamButton>
     </div>
   );
