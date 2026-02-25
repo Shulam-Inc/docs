@@ -1,130 +1,110 @@
 ---
 title: "Quickstart"
-description: "Accept your first Shulam payment in 15 minutes"
+description: "Accept your first Shulam payment in 5 minutes"
 ---
 
 # Quickstart
 
-This guide walks you through accepting your first USDC payment on Base Sepolia testnet.
+Go from `npm install` to your first USDC payment on Base Sepolia testnet in three steps.
 
 ## Prerequisites
 
 - A wallet address to receive payments (any Ethereum-compatible wallet)
 - Node.js 18+ installed
-- Basic familiarity with REST APIs
 
-## Step 1: Get API Keys
+## Step 1: Install the SDK
 
-<Steps>
-  <Step title="Create a merchant account">
-    Sign up at [shulam.io/dashboard](https://shulam.io/dashboard) and complete KYB verification.
-  </Step>
-  <Step title="Generate API keys">
-    In the dashboard, navigate to **Settings > API Keys** and create a new key pair.
-  </Step>
-  <Step title="Save your credentials">
-    Store your API key securely. You'll need it for all API requests.
+<Tabs>
+  <Tab title="Server (Express)">
     ```bash
-    export SHULAM_API_KEY="sk_test_..."
-    export MERCHANT_WALLET="0xYourWalletAddress"
+    npm install @shulam/sdk
     ```
-  </Step>
-</Steps>
+  </Tab>
+  <Tab title="Full Stack">
+    ```bash
+    npm install @shulam/x402
+    ```
+  </Tab>
+</Tabs>
 
-## Step 2: Install the SDK
+## Step 2: Add a Paywall
 
-<CodeGroup>
-```bash npm
-npm install @shulam/buyer-sdk
+### Express
+
+Three lines to protect any route with a USDC paywall:
+
+```typescript
+import express from "express";
+import { requirePayment } from "@shulam/sdk/express";
+
+const app = express();
+
+app.get(
+  "/api/premium",
+  requirePayment({ amount: "10000000", payTo: "0xYourWallet" }),
+  (req, res) => {
+    // req.payment contains { txHash, payer, settled }
+    res.json({ data: "premium content", paidBy: req.payment.payer });
+  }
+);
+
+app.listen(3000);
 ```
 
-```bash yarn
-yarn add @shulam/buyer-sdk
+### Next.js
+
+```typescript
+import { requirePayment } from "@shulam/sdk/express";
+
+const paywall = requirePayment({
+  amount: "5000000", // 5 USDC
+  payTo: "0xYourWallet",
+});
+
+export async function GET(req: Request) {
+  const payment = await paywall(req);
+  return Response.json({ data: "premium content", paidBy: payment.payer });
+}
 ```
 
-```bash pnpm
-pnpm add @shulam/buyer-sdk
-```
-</CodeGroup>
+## Step 3: Test a Payment
 
-## Step 3: Create a Payment Button
+Use the client SDK to pay through your paywall:
+
+```typescript
+import { createShulamClient } from "@shulam/x402/client";
+
+const client = createShulamClient({
+  facilitatorUrl: "https://api.shulam.io",
+  signer: yourWalletSigner,
+  walletAddress: "0xBuyerAddress",
+  maxPaymentUSDC: 100,
+});
+
+// Automatically handles 402 responses — signs, pays, and retries
+const response = await client.fetch("http://localhost:3000/api/premium");
+const data = await response.json();
+```
+
+### React
 
 ```tsx
-import { ShulamPayment } from "@shulam/buyer-sdk";
+import { useShulamPayment } from "@shulam/x402/react";
 
-const shulam = new ShulamPayment({
-  network: "base-sepolia",
-  facilitatorUrl: "https://api.shulam.io",
-});
+function PayButton() {
+  const { pay, paying, lastReceipt, error } = useShulamPayment({
+    facilitatorUrl: "https://api.shulam.io",
+    signer: walletSigner,
+    walletAddress: "0xBuyerAddress",
+    maxDailyUSDC: 50,
+  });
 
-// Connect the buyer's wallet
-await shulam.connect();
-
-// Create and sign a payment
-const result = await shulam.pay({
-  to: "0xMerchantWalletAddress",
-  amount: "10000000", // 10 USDC (6 decimals)
-});
-
-console.log("Payment hash:", result.txHash);
-```
-
-## Step 4: Verify on Your Server
-
-```javascript
-const response = await fetch("https://api.shulam.io/verify", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "Authorization": "Bearer sk_test_...",
-  },
-  body: JSON.stringify({
-    paymentHeader: result.paymentHeader,
-    expectedTo: "0xMerchantWalletAddress",
-    expectedValue: "10000000",
-  }),
-});
-
-const data = await response.json();
-// { verified: true, from: "0xBuyer...", to: "0xMerchant...", value: "10000000" }
-```
-
-## Step 5: Settle the Payment
-
-```javascript
-const settlement = await fetch("https://api.shulam.io/settle", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "Authorization": "Bearer sk_test_...",
-  },
-  body: JSON.stringify({
-    paymentHeader: result.paymentHeader,
-    mode: "direct", // or "deferred" for escrow
-  }),
-});
-
-const txResult = await settlement.json();
-// { settled: true, txId: "...", txHash: "0x...", txLink: "https://sepolia.basescan.org/tx/..." }
-```
-
-## Step 6: Set Up Webhooks (Optional)
-
-Register a webhook to receive real-time payment notifications:
-
-```javascript
-await fetch("https://api.shulam.io/webhooks/configure", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "Authorization": "Bearer sk_test_...",
-  },
-  body: JSON.stringify({
-    url: "https://yoursite.com/webhooks/shulam",
-    events: ["payment.completed", "payment.failed"],
-    secret: "whsec_your_webhook_secret",
-  }),
-});
+  return (
+    <button onClick={() => pay("http://localhost:3000/api/premium")} disabled={paying}>
+      {paying ? "Paying..." : "Access Premium"}
+    </button>
+  );
+}
 ```
 
 ## What's Next?
@@ -133,8 +113,8 @@ await fetch("https://api.shulam.io/webhooks/configure", {
   <Card title="Merchant Integration" icon="store" href="/guides/merchant-integration">
     Full server-side integration guide with error handling and best practices.
   </Card>
-  <Card title="Webhooks" icon="bell" href="/guides/webhooks">
-    Set up reliable webhook delivery for payment events.
+  <Card title="Compliance" icon="shield-check" href="/guides/compliance">
+    OFAC screening, trust scores, and Compliance-as-a-Service.
   </Card>
   <Card title="Escrow Payments" icon="lock" href="/guides/escrow-payments">
     Use deferred settlement for subscriptions and marketplace payments.

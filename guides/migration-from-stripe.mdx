@@ -22,19 +22,19 @@ Replace Stripe's 2.9% + 30c per transaction with Shulam's compliant USDC payment
 
 | Stripe | Shulam | Notes |
 |--------|--------|-------|
-| `PaymentIntent` | `POST /settle` | Direct settlement |
+| `PaymentIntent` | `requirePayment()` middleware | SDK handles verify + settle |
 | `PaymentIntent` (capture later) | `POST /settle` with `mode: "deferred"` | Escrow-based capture |
 | `Refund` | `POST /escrow/refund` | Full refund via escrow |
 | `Webhook` | `POST /webhooks/configure` | Same pattern |
-| `Stripe.js` | `@shulam/buyer-sdk` | Client-side SDK |
+| `Stripe.js` | `@shulam/x402` | Client-side SDK |
 | `stripe.customers` | Wallet addresses | No customer objects needed |
 
 ## Migration Steps
 
-### 1. Add the Shulam SDK alongside Stripe
+### 1. Install the Shulam SDK
 
 ```bash
-npm install @shulam/buyer-sdk
+npm install @shulam/x402
 ```
 
 ### 2. Create a Shulam payment option
@@ -42,56 +42,55 @@ npm install @shulam/buyer-sdk
 Add a "Pay with USDC" button next to your existing Stripe checkout:
 
 ```tsx
-import { ShulamButton } from "@shulam/buyer-sdk/react";
+import { useShulamPayment } from "@shulam/x402/react";
 
 function Checkout({ amount, orderId }) {
+  const { pay, paying, lastReceipt } = useShulamPayment({
+    facilitatorUrl: "https://api.shulam.io",
+    signer: walletSigner,
+    walletAddress: "0xBuyerAddress",
+    maxDailyUSDC: 1000,
+  });
+
   return (
     <div>
       {/* Existing Stripe button */}
       <StripeCheckout amount={amount} />
 
       {/* New Shulam option */}
-      <ShulamButton
-        to={process.env.NEXT_PUBLIC_MERCHANT_WALLET}
-        amount={(amount * 1e6).toString()} // Convert dollars to USDC base units
-        network="base"
-        onSuccess={async (result) => {
-          await fetch("/api/checkout/shulam", {
-            method: "POST",
-            body: JSON.stringify({ paymentHeader: result.paymentHeader, orderId }),
-          });
-        }}
+      <button
+        onClick={() => pay(`/api/checkout/shulam?orderId=${orderId}`)}
+        disabled={paying}
       >
-        Pay {amount} USDC
-      </ShulamButton>
+        {paying ? "Processing..." : `Pay ${amount} USDC`}
+      </button>
+
+      {lastReceipt && <p>Paid! TX: {lastReceipt.txHash}</p>}
     </div>
   );
 }
 ```
 
-### 3. Add the server-side settlement endpoint
+### 3. Add the server-side paywall
 
-```javascript
-app.post("/api/checkout/shulam", async (req, res) => {
-  const { paymentHeader, orderId } = req.body;
+```typescript
+import { requirePayment } from "@shulam/sdk/express";
 
-  const result = await fetch("https://api.shulam.io/settle", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${process.env.SHULAM_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ paymentHeader, mode: "direct" }),
-  });
-
-  const data = await result.json();
-  if (data.settled) {
-    await markOrderPaid(orderId, { provider: "shulam", txHash: data.txHash });
-    res.json({ success: true });
-  } else {
-    res.status(400).json({ error: data.error });
+app.get(
+  "/api/checkout/shulam",
+  requirePayment({
+    amount: "10000000", // 10 USDC
+    payTo: process.env.MERCHANT_WALLET,
+  }),
+  async (req, res) => {
+    const { orderId } = req.query;
+    await markOrderPaid(orderId, {
+      provider: "shulam",
+      txHash: req.payment.txHash,
+    });
+    res.json({ success: true, txHash: req.payment.txHash });
   }
-});
+);
 ```
 
 ### 4. Gradually shift traffic

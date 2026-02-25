@@ -1,35 +1,56 @@
 ---
 title: "Installation"
-description: "Install the Shulam Buyer SDK"
+description: "Install the Shulam SDKs"
 ---
 
 # Installation
 
-## Package Managers
+Shulam provides two packages depending on your use case.
 
-<CodeGroup>
-```bash npm
-npm install @shulam/buyer-sdk
+## Server SDK
+
+For Express/Node.js backends that accept payments:
+
+```bash
+npm install @shulam/sdk
 ```
 
-```bash yarn
-yarn add @shulam/buyer-sdk
+**Subpath exports:**
+
+| Import | Purpose |
+|--------|---------|
+| `@shulam/sdk/express` | `requirePayment()` middleware |
+| `@shulam/sdk/compliance` | `Shulam.compliance.screen()` |
+| `@shulam/sdk/webhooks` | Webhook signature verification |
+| `@shulam/sdk` | Core types and utilities |
+
+## Full Stack / Client SDK
+
+For frontends, full-stack apps, or agent-to-agent payments:
+
+```bash
+npm install @shulam/x402
 ```
 
-```bash pnpm
-pnpm add @shulam/buyer-sdk
-```
-</CodeGroup>
+**Subpath exports:**
+
+| Import | Purpose |
+|--------|---------|
+| `@shulam/x402/client` | `createShulamClient()` — auto-402 fetch |
+| `@shulam/x402/server` | `createShulamServer()` — multi-endpoint config |
+| `@shulam/x402/react` | `useShulamPayment()` hook |
+| `@shulam/x402/types` | Shared TypeScript types |
+| `@shulam/x402` | Core protocol utilities |
 
 ## Requirements
 
 - Node.js 18+
-- React 18+ (for React components)
-- An EIP-1193 compatible wallet (MetaMask, Coinbase Wallet, WalletConnect, etc.)
+- React 18+ (for `@shulam/x402/react`)
+- An EIP-1193 compatible wallet (MetaMask, Coinbase Wallet, etc.)
 
 ## Peer Dependencies
 
-The SDK requires `viem` for Ethereum interactions:
+Both packages require `viem` for Ethereum interactions:
 
 ```bash
 npm install viem
@@ -37,48 +58,42 @@ npm install viem
 
 ## Quick Start
 
+### Server (Express)
+
 ```typescript
-import { ShulamPayment } from "@shulam/buyer-sdk";
+import { requirePayment } from "@shulam/sdk/express";
 
-// Initialize
-const shulam = new ShulamPayment({
-  network: "base-sepolia",
+app.get(
+  "/api/data",
+  requirePayment({ amount: "5000000", payTo: "0xYourWallet" }),
+  (req, res) => {
+    res.json({ data: "paid content", payer: req.payment.payer });
+  }
+);
+```
+
+### Client
+
+```typescript
+import { createShulamClient } from "@shulam/x402/client";
+
+const client = createShulamClient({
   facilitatorUrl: "https://api.shulam.io",
+  signer: walletSigner,
+  walletAddress: "0xBuyerAddress",
+  maxPaymentUSDC: 100,
 });
 
-// Connect wallet
-await shulam.connect();
-
-// Make a payment
-const result = await shulam.pay({
-  to: "0xMerchantAddress",
-  amount: "10000000", // 10 USDC
-});
-
-console.log(result.paymentHeader); // Send this to your backend
+const response = await client.fetch("https://merchant.com/api/data");
 ```
 
 ## Framework Guides
 
 <CardGroup cols={2}>
   <Card title="React" icon="react" href="/sdk/react-components">
-    Drop-in payment button and hooks for React apps.
+    `useShulamPayment` hook for React apps.
   </Card>
-  <Card title="Vanilla JS" icon="js" href="/sdk/shulam-payment">
-    Core SDK reference for any JavaScript environment.
+  <Card title="Examples" icon="code" href="/sdk/examples">
+    Complete code examples for common payment scenarios.
   </Card>
 </CardGroup>
-
-## CDN Usage
-
-For non-bundled environments:
-
-```html
-<script src="https://unpkg.com/@shulam/buyer-sdk/dist/index.umd.js"></script>
-<script>
-  const shulam = new ShulamBuyerSDK.ShulamPayment({
-    network: "base-sepolia",
-    facilitatorUrl: "https://api.shulam.io",
-  });
-</script>
-```

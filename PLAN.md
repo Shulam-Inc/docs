@@ -220,9 +220,8 @@ Feature: SDK Documentation
     When I navigate to SDK > Installation
     Then I see installation commands for:
       | package_manager | command                        |
-      | npm             | npm install @shulam/buyer-sdk  |
-      | yarn            | yarn add @shulam/buyer-sdk     |
-      | pnpm            | pnpm add @shulam/buyer-sdk     |
+      | npm (server)    | npm install @shulam/sdk         |
+      | npm (client)    | npm install @shulam/x402        |
 
   Scenario: Understand SDK methods
     Given I am viewing the SDK reference

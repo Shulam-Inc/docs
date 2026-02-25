@@ -1,0 +1,208 @@
+---
+title: "Compliance Guide"
+description: "OFAC screening, trust scores, and Compliance-as-a-Service"
+---
+
+# Compliance Guide
+
+Every Shulam payment is automatically screened for OFAC compliance. This guide covers the compliance system, how to handle held payments, and how to use Compliance-as-a-Service (CaaS) for standalone screening.
+
+## Automatic OFAC Screening
+
+Every payment processed through Shulam is screened against the OFAC Specially Designated Nationals (SDN) list. This is always enabled — there is no opt-out. Screening checks:
+
+- **Buyer address** — the wallet sending funds
+- **Merchant address** — the wallet receiving funds
+- **Associated addresses** — any linked wallets from on-chain analysis
+
+Screening happens during the `/settle` flow and adds no perceptible latency to normal transactions.
+
+## ComplianceStatus Types
+
+Every payment receives one of three compliance statuses:
+
+| Status | Meaning | Action Required |
+|--------|---------|-----------------|
+| `'clear'` | No compliance issues detected | Payment settles normally |
+| `'held'` | Potential match requires manual review | Payment is escrowed pending review |
+| `'blocked'` | Confirmed sanctions match | Payment is rejected, funds returned to buyer |
+
+<Warning>
+The status `'flagged'` does not exist in Shulam. Always use `'clear'`, `'held'`, or `'blocked'`.
+</Warning>
+
+## Compliance Headers
+
+Successful payments include compliance information in the response headers:
+
+| Header | Value | Description |
+|--------|-------|-------------|
+| `X-Shulam-Compliance` | `clear`, `held`, `blocked` | Compliance screening result |
+| `X-Shulam-Trust-Score` | `0`–`100` | Buyer's trust score |
+| `X-Shulam-Trust-Tier` | `starter`, `standard`, `premium`, `enterprise` | Trust tier |
+| `X-Shulam-Audit-Hash` | `sha256:...` | Immutable audit trail hash |
+
+## Handling Compliance Webhooks
+
+Register webhooks to react to compliance events in real time:
+
+```typescript
+app.post("/webhooks/shulam", (req, res) => {
+  const { type, data } = req.body;
+
+  switch (type) {
+    case "payment.completed":
+      // Payment cleared compliance and settled on-chain
+      fulfillOrder(data.txHash);
+      break;
+
+    case "payment.held":
+      // Payment is held for manual compliance review
+      // Do NOT deliver goods — wait for payment.released
+      notifyOps({
+        reason: data.holdReason,
+        buyerAddress: data.from,
+        amount: data.amount,
+        escrowId: data.escrowId,
+      });
+      break;
+
+    case "payment.blocked":
+      // Payment blocked due to confirmed sanctions match
+      // Funds are returned to buyer automatically
+      cancelOrder(data.orderId);
+      break;
+
+    case "payment.released":
+      // Previously held payment has been reviewed and cleared
+      fulfillOrder(data.txHash);
+      break;
+  }
+
+  res.json({ received: true });
+});
+```
+
+## SDK Screening API
+
+Screen addresses programmatically using the SDK:
+
+```typescript
+import Shulam from "@shulam/sdk";
+
+const result = await Shulam.compliance.screen({
+  address: "0xSuspectAddress",
+  chain: "base",
+});
+
+// result: {
+//   status: 'clear' | 'held' | 'blocked',
+//   score: 85,
+//   tier: 'standard',
+//   matchDetails: null | { source: 'OFAC_SDN', name: '...', confidence: 0.95 },
+//   auditHash: 'sha256:abc123...',
+// }
+```
+
+### Batch Screening
+
+Screen multiple addresses in a single call:
+
+```typescript
+const results = await Shulam.compliance.screenBatch({
+  addresses: ["0xAddress1", "0xAddress2", "0xAddress3"],
+  chain: "base",
+});
+
+// results: Array<ScreenResult>
+```
+
+## Compliance-as-a-Service (CaaS)
+
+Use Shulam's compliance infrastructure as a standalone screening service, independent of payment processing.
+
+### Pricing
+
+| Tier | Monthly Screens | Per-Screen Cost | Features |
+|------|----------------|-----------------|----------|
+| **Free** | 100 | $0.00 | OFAC SDN, basic screening |
+| **Standard** | 10,000 | $0.01 | OFAC + enhanced KYT, velocity checks |
+| **Enterprise** | Unlimited | $0.005 | Full suite, dedicated support, SLA |
+
+### Usage
+
+```typescript
+import Shulam from "@shulam/sdk";
+
+// Initialize with CaaS API key
+const compliance = Shulam.compliance.init({
+  apiKey: process.env.SHULAM_CAAS_API_KEY,
+});
+
+// Screen an address
+const result = await compliance.screen({
+  address: "0xAddressToScreen",
+  chain: "base",
+});
+
+// Check remaining quota
+const quota = await compliance.getQuota();
+// { used: 42, limit: 100, tier: 'free', resetsAt: '2026-04-01T00:00:00Z' }
+```
+
+### Webhook Configuration for CaaS
+
+```typescript
+await compliance.configureWebhook({
+  url: "https://yourapp.com/webhooks/compliance",
+  events: ["screen.held", "screen.blocked"],
+  secret: "whsec_your_secret",
+});
+```
+
+## Trust Scores
+
+Every wallet address accumulates a trust score (0–100) based on six weighted components:
+
+| Component | Weight | Measures |
+|-----------|--------|----------|
+| **Transaction History** | 25% | Volume and consistency of past payments |
+| **OFAC Compliance** | 20% | Clean screening history |
+| **Wallet Age** | 15% | How long the wallet has been active on-chain |
+| **Counterparty Quality** | 15% | Trust scores of addresses transacted with |
+| **Velocity Pattern** | 15% | Normal vs. suspicious transaction patterns |
+| **Network Reputation** | 10% | Cross-platform reputation signals |
+
+### Trust Tiers
+
+| Tier | Score Range | Benefits |
+|------|------------|----------|
+| **Starter** | 0–39 | Standard processing, full screening |
+| **Standard** | 40–69 | Faster settlement, reduced screening latency |
+| **Premium** | 70–89 | Priority processing, higher transaction limits |
+| **Enterprise** | 90–100 | Lowest fees, instant settlement, dedicated support |
+
+### Querying Trust Scores
+
+```typescript
+import Shulam from "@shulam/sdk";
+
+const trust = await Shulam.compliance.getTrustScore({
+  address: "0xBuyerAddress",
+  chain: "base",
+});
+
+// trust: {
+//   score: 72,
+//   tier: 'premium',
+//   components: {
+//     transactionHistory: 80,
+//     ofacCompliance: 100,
+//     walletAge: 60,
+//     counterpartyQuality: 55,
+//     velocityPattern: 70,
+//     networkReputation: 65,
+//   },
+//   updatedAt: '2026-02-25T12:00:00Z',
+// }
+```

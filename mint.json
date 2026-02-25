@@ -62,6 +62,7 @@
       "pages": [
         "guides/merchant-integration",
         "guides/buyer-sdk",
+        "guides/compliance",
         "guides/webhooks",
         "guides/testing",
         "guides/escrow-payments",
@@ -113,6 +114,7 @@
     "x": "https://x.com/shulam_pay",
     "github": "https://github.com/Shulam-Inc"
   },
+  "openapi": "https://api.shulam.io/openapi.yaml",
   "api": {
     "baseUrl": "https://api.shulam.io",
     "auth": {

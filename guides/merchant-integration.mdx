@@ -10,34 +10,74 @@ This guide covers the full server-side integration for accepting USDC payments v
 ## Integration Flow
 
 ```
-1. Buyer clicks "Pay with Shulam" on your site
-2. Your frontend uses the Buyer SDK to sign a payment authorization
-3. Your backend receives the paymentHeader
-4. Your backend calls POST /verify to validate the signature
-5. Your backend calls POST /settle to execute the on-chain transfer
+1. Buyer requests a paid resource from your server
+2. Your server returns HTTP 402 with payment requirements
+3. The buyer's client signs an EIP-3009 authorization and retries with X-PAYMENT header
+4. Your middleware verifies + settles the payment automatically
+5. Your route handler runs with req.payment containing the settlement details
 6. You receive a webhook confirming the payment
-7. You fulfill the order
 ```
 
-## Server Setup
+## Quick Setup with SDK Middleware
 
-```javascript
+The fastest way to add payments — three lines with `requirePayment()`:
+
+```typescript
 import express from "express";
+import { requirePayment } from "@shulam/sdk/express";
 
 const app = express();
 app.use(express.json());
 
-const SHULAM_API = "https://api.shulam.io";
-const API_KEY = process.env.SHULAM_API_KEY;
+// Any route becomes a paywall
+app.get(
+  "/api/premium",
+  requirePayment({ amount: "10000000", payTo: process.env.MERCHANT_WALLET }),
+  (req, res) => {
+    // req.payment is populated after successful verification + settlement
+    res.json({
+      data: "premium content",
+      paidBy: req.payment.payer,
+      txHash: req.payment.txHash,
+      settled: req.payment.settled,
+    });
+  }
+);
+```
 
+The middleware handles the full x402 flow: returns 402 when no payment header is present, verifies the signature, settles on-chain, and attaches the result to `req.payment`.
+
+## Multi-Endpoint Configuration
+
+For apps with multiple paid endpoints at different price points, use `createShulamServer`:
+
+```typescript
+import { createShulamServer } from "@shulam/x402/server";
+
+const shulam = createShulamServer({
+  facilitatorUrl: "https://api.shulam.io",
+  sellerAddress: process.env.MERCHANT_WALLET,
+  endpoints: {
+    "/api/basic": { amount: "1000000" },    // 1 USDC
+    "/api/premium": { amount: "10000000" }, // 10 USDC
+    "/api/bulk": { amount: "50000000" },    // 50 USDC
+  },
+});
+```
+
+## Manual Integration
+
+If you need full control over the verification and settlement flow:
+
+```typescript
 app.post("/checkout", async (req, res) => {
   const { paymentHeader, orderId } = req.body;
 
   // Step 1: Verify the payment signature
-  const verifyRes = await fetch(`${SHULAM_API}/verify`, {
+  const verifyRes = await fetch(`${process.env.SHULAM_API}/verify`, {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${API_KEY}`,
+      "Authorization": `Bearer ${process.env.SHULAM_API_KEY}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -53,10 +93,10 @@ app.post("/checkout", async (req, res) => {
   }
 
   // Step 2: Settle the payment
-  const settleRes = await fetch(`${SHULAM_API}/settle`, {
+  const settleRes = await fetch(`${process.env.SHULAM_API}/settle`, {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${API_KEY}`,
+      "Authorization": `Bearer ${process.env.SHULAM_API_KEY}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ paymentHeader, mode: "direct" }),
@@ -67,7 +107,6 @@ app.post("/checkout", async (req, res) => {
     return res.status(400).json({ error: settlement.error });
   }
 
-  // Step 3: Mark order as paid
   await markOrderPaid(orderId, settlement.txHash);
 
   res.json({

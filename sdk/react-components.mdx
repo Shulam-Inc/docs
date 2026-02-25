@@ -1,112 +1,168 @@
 ---
 title: "React Components"
-description: "Drop-in React components for Shulam payments"
+description: "React hook for Shulam payments"
 ---
 
 # React Components
 
-Pre-built React components for adding Shulam payments to your app.
+The `@shulam/x402/react` package provides a React hook for integrating Shulam payments.
 
 ```bash
-npm install @shulam/buyer-sdk
+npm install @shulam/x402 viem
 ```
 
-## ShulamButton
+## useShulamPayment Hook
 
-A ready-to-use payment button that handles wallet connection, signing, and callbacks.
-
-```tsx
-import { ShulamButton } from "@shulam/buyer-sdk/react";
-
-function Checkout() {
-  return (
-    <ShulamButton
-      to="0xMerchantAddress"
-      amount="10000000"
-      network="base-sepolia"
-      onSuccess={(result) => {
-        console.log("Payment signed:", result.paymentHeader);
-      }}
-      onError={(error) => {
-        console.error("Payment failed:", error.message);
-      }}
-    >
-      Pay 10 USDC
-    </ShulamButton>
-  );
-}
-```
-
-### Props
-
-| Prop | Type | Required | Description |
-|------|------|----------|-------------|
-| `to` | `string` | Yes | Merchant wallet address |
-| `amount` | `string` | Yes | Amount in USDC base units |
-| `network` | `string` | Yes | `"base-sepolia"` or `"base"` |
-| `onSuccess` | `(result: PayResult) => void` | Yes | Called when payment is signed |
-| `onError` | `(error: Error) => void` | No | Called on error |
-| `disabled` | `boolean` | No | Disable the button |
-| `className` | `string` | No | Custom CSS class |
-| `children` | `ReactNode` | No | Button label |
-
-## ShulamProvider
-
-Wrap your app to share a single SDK instance across components.
+The primary React integration point. Handles wallet signing, 402 negotiation, and payment state.
 
 ```tsx
-import { ShulamProvider } from "@shulam/buyer-sdk/react";
+import { useShulamPayment } from "@shulam/x402/react";
 
-function App() {
-  return (
-    <ShulamProvider
-      network="base-sepolia"
-      facilitatorUrl="https://api.shulam.io"
-    >
-      <YourApp />
-    </ShulamProvider>
-  );
-}
-```
+function Paywall({ resourceUrl }: { resourceUrl: string }) {
+  const { pay, paying, lastReceipt, error, dailySpending, reset } = useShulamPayment({
+    facilitatorUrl: "https://api.shulam.io",
+    signer: walletSigner,
+    walletAddress: "0xBuyerAddress",
+    maxDailyUSDC: 50,
+  });
 
-## useShulam Hook
-
-Access the SDK instance from any component within the provider.
-
-```tsx
-import { useShulam } from "@shulam/buyer-sdk/react";
-
-function PaymentStatus() {
-  const { isConnected, address, connect, pay, getCashback } = useShulam();
-
-  if (!isConnected) {
-    return <button onClick={connect}>Connect Wallet</button>;
-  }
+  const handlePay = async () => {
+    const response = await pay(resourceUrl);
+    const data = await response.json();
+    // Use the paid content
+  };
 
   return (
     <div>
-      <p>Connected: {address}</p>
-      <button onClick={() => pay({ to: "0x...", amount: "5000000" })}>
-        Pay 5 USDC
+      <button onClick={handlePay} disabled={paying}>
+        {paying ? "Processing..." : "Pay & Access"}
       </button>
+
+      {lastReceipt && (
+        <p>
+          Paid {lastReceipt.amount} USDC — TX: {lastReceipt.txHash}
+        </p>
+      )}
+      {error && (
+        <div>
+          <p>Error: {error.message}</p>
+          <button onClick={reset}>Dismiss</button>
+        </div>
+      )}
+      <p>Today's spending: {dailySpending} USDC</p>
     </div>
   );
 }
 ```
 
-## useCashback Hook
+### Options
 
-Query and display cashback balance reactively.
+| Option | Type | Required | Description |
+|--------|------|----------|-------------|
+| `facilitatorUrl` | `string` | Yes | Shulam facilitator endpoint |
+| `signer` | `WalletClient \| Hex` | Yes | Wallet signer or private key |
+| `walletAddress` | `string` | Yes | Buyer's wallet address |
+| `maxDailyUSDC` | `number` | Yes | Daily spending cap in USDC |
+
+### Return Values
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `pay` | `(url: string) => Promise<Response>` | Fetch URL with auto-402 handling |
+| `paying` | `boolean` | True while payment is in flight |
+| `lastReceipt` | `Receipt \| null` | Last successful payment receipt |
+| `error` | `Error \| null` | Last error |
+| `dailySpending` | `string` | Total USDC spent today |
+| `reset` | `() => void` | Clear error and receipt state |
+
+### Receipt Object
+
+```typescript
+interface Receipt {
+  txHash: string;    // On-chain transaction hash
+  payer: string;     // Buyer wallet address
+  amount: string;    // Amount in USDC base units
+  settled: boolean;  // Whether settlement is confirmed
+}
+```
+
+## Building a Payment Button
+
+Use the hook to build a custom payment button tailored to your UI:
 
 ```tsx
-import { useCashback } from "@shulam/buyer-sdk/react";
+import { useShulamPayment } from "@shulam/x402/react";
 
-function CashbackBadge() {
-  const { balance, balanceFormatted, isLoading } = useCashback();
+function ShulamPayButton({
+  url,
+  label,
+  onSuccess,
+}: {
+  url: string;
+  label: string;
+  onSuccess: (receipt: Receipt) => void;
+}) {
+  const { pay, paying, lastReceipt, error } = useShulamPayment({
+    facilitatorUrl: "https://api.shulam.io",
+    signer: walletSigner,
+    walletAddress: "0xBuyerAddress",
+    maxDailyUSDC: 100,
+  });
 
-  if (isLoading) return <span>Loading...</span>;
-  if (balance === "0") return null;
+  const handleClick = async () => {
+    await pay(url);
+    if (lastReceipt) onSuccess(lastReceipt);
+  };
 
-  return <span>Cashback: {balanceFormatted}</span>;
+  return (
+    <div>
+      <button onClick={handleClick} disabled={paying}>
+        {paying ? "Paying..." : label}
+      </button>
+      {error && <span className="error">{error.message}</span>}
+    </div>
+  );
+}
+```
+
+## Full Page Example
+
+A complete checkout page using the hook:
+
+```tsx
+import { useState } from "react";
+import { useShulamPayment } from "@shulam/x402/react";
+
+function CheckoutPage({ order }) {
+  const [content, setContent] = useState(null);
+  const { pay, paying, lastReceipt, error } = useShulamPayment({
+    facilitatorUrl: "https://api.shulam.io",
+    signer: walletSigner,
+    walletAddress: "0xBuyerAddress",
+    maxDailyUSDC: 100,
+  });
+
+  const handleCheckout = async () => {
+    const response = await pay(`/api/orders/${order.id}/fulfill`);
+    const data = await response.json();
+    setContent(data);
+  };
+
+  return (
+    <div>
+      <h2>Order #{order.id}</h2>
+      <p>Total: {(Number(order.amount) / 1e6).toFixed(2)} USDC</p>
+
+      {!content && (
+        <button onClick={handleCheckout} disabled={paying}>
+          {paying ? "Processing..." : `Pay ${(Number(order.amount) / 1e6).toFixed(2)} USDC`}
+        </button>
+      )}
+
+      {lastReceipt && <p>Payment confirmed! TX: {lastReceipt.txHash}</p>}
+      {content && <div>{JSON.stringify(content)}</div>}
+      {error && <p className="error">{error.message}</p>}
+    </div>
+  );
 }
 ```

@@ -43,7 +43,7 @@ Shulam is an x402 payment facilitator that enables internet-native USDC payments
 | **facilitator** | Service | Core x402 payment processing: verify, settle, webhooks, monitoring | contracts, compliance |
 | **contracts** | On-chain | Solidity: ShulamEscrow, CashbackVault, DisputeResolver | USDC (Base L2) |
 | **compliance** | Service | OFAC SDN screening, Chainalysis KYT, velocity monitoring, SAR | facilitator (called by) |
-| **buyer-sdk** | SDK | TypeScript SDK for wallets/dApps + headless agent mode + MCP tools | facilitator (API client), souls (reputation) |
+| **buyer-sdk** | SDK | Published as `@shulam/x402` — client SDK for wallets/dApps + headless agent mode + MCP tools | facilitator (API client), souls (reputation) |
 | **merchant-dashboard** | Frontend | Web UI: webhook management, transaction history, analytics, settings | facilitator (API client) |
 | **souls** | On-chain + Service | Agent orchestration (18 Apostles), SBT identity, reputation oracle | contracts, facilitator |
 | **docs** | Content | Mintlify docs at docs.shulam.io: API reference, guides, protocol specs | All repos (documents them) |
