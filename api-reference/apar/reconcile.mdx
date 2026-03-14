@@ -1,0 +1,21 @@
+---
+title: 'Reconcile'
+api: 'POST /api/v1/apar/reconcile'
+description: 'Run period reconciliation matching settlements to invoices'
+---
+
+## Request Body
+
+<ParamField body="businessId" type="string" required>Business ID</ParamField>
+<ParamField body="startDate" type="string" required>Period start (ISO-8601)</ParamField>
+<ParamField body="endDate" type="string" required>Period end (ISO-8601)</ParamField>
+
+## Response
+
+```json
+{
+  "matched": [{ "reconciliationId": "...", "invoiceId": "...", "txHash": "..." }],
+  "unmatched": ["0xTxHash1", "0xTxHash2"],
+  "partiallyPaid": ["inv-003"]
+}
+```

@@ -1,0 +1,55 @@
+---
+title: 'AP/AR Agent Overview'
+description: 'Conversational AI agent for accounts payable and receivable on x402'
+---
+
+# AP/AR Conversational Payment Agent
+
+The AP/AR Agent enables businesses to manage invoices, payments, aging, dunning, and reconciliation through both REST API and conversational interfaces (Slack, XMTP, WebChat).
+
+## How It Works
+
+1. **Create invoices** — payable (AP) or receivable (AR) with auto-numbering (INV-/RCV-)
+2. **Approval workflow** — invoices above threshold require CFO/controller approval
+3. **Payment execution** — immediate, scheduled, batch, or recurring via JAMES→SAMUEL→LEVI pipeline
+4. **Auto-reconciliation** — incoming settlements matched to invoices by amount + address
+5. **Dunning automation** — overdue invoices trigger reminder sequences
+
+## Access Methods
+
+| Method | Endpoint | Use Case |
+|--------|----------|----------|
+| **REST API** | `POST /api/v1/apar/invoices` | Programmatic agent-to-agent |
+| **Gateway Skills** | `POST /skills/apar-create-invoice/invoke` | Conversational channels |
+| **Slack** | `/invoice $500 to 0xABC for consulting` | Human operators |
+| **XMTP** | Direct message to Shulam agent | Agent-to-agent messaging |
+
+## Authentication
+
+All AP/AR endpoints require the same bearer token authentication as other Shulam API endpoints.
+
+```bash
+curl -X POST https://api.shulam.io/api/v1/apar/invoices \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "businessId": "your-business-id",
+    "direction": "payable",
+    "issuerAddress": "0xVendorAddress",
+    "recipientAddress": "0xYourAddress",
+    "amountAtomic": "500000000",
+    "terms": "net_30"
+  }'
+```
+
+## Feature Gate
+
+AP/AR is enabled per-platform via `APAR_ENABLED=true`. Contact Shulam to activate.
+
+## Pricing
+
+| Tier | Monthly | Includes |
+|------|---------|----------|
+| **Free** | $0 | 10 invoices/month, aging reports, status queries |
+| **Pro** | $99 | Unlimited invoices, batch payments, scheduling |
+| **Enterprise** | $499 | Multi-user approval chains, dunning, reconciliation, API priority |

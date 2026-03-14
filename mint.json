@@ -100,6 +100,21 @@
       ]
     },
     {
+      "group": "AP/AR Agent",
+      "pages": [
+        "api-reference/apar/overview",
+        "api-reference/apar/create-invoice",
+        "api-reference/apar/get-invoice",
+        "api-reference/apar/search-invoices",
+        "api-reference/apar/approve-invoice",
+        "api-reference/apar/reject-invoice",
+        "api-reference/apar/pay-invoice",
+        "api-reference/apar/aging-report",
+        "api-reference/apar/schedules",
+        "api-reference/apar/reconcile"
+      ]
+    },
+    {
       "group": "SDK",
       "pages": [
         "sdk/installation",

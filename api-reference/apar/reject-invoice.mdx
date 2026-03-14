@@ -1,0 +1,18 @@
+---
+title: 'Reject Invoice'
+api: 'POST /api/v1/apar/invoices/{id}/reject'
+description: 'Reject a pending invoice with reason'
+---
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>Invoice UUID</ParamField>
+
+## Request Body
+
+<ParamField body="approverAddress" type="string" required>Ethereum address of the rejector</ParamField>
+<ParamField body="reason" type="string" required>Rejection reason (logged in audit trail)</ParamField>
+
+## Response
+
+Returns the voided invoice with `voidReason` populated.

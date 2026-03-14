@@ -1,0 +1,41 @@
+---
+title: 'Search Invoices'
+api: 'GET /api/v1/apar/invoices'
+description: 'Search and filter invoices by business, direction, status'
+---
+
+## Query Parameters
+
+<ParamField query="businessId" type="string" required>
+  Filter by business ID
+</ParamField>
+
+<ParamField query="direction" type="string">
+  `payable` or `receivable`
+</ParamField>
+
+<ParamField query="status" type="string">
+  Filter by status: `draft`, `pending_approval`, `approved`, `scheduled`, `settled`, `voided`, `overdue`
+</ParamField>
+
+<ParamField query="page" type="number" default="1">
+  Page number
+</ParamField>
+
+<ParamField query="pageSize" type="number" default="20">
+  Results per page (max 100)
+</ParamField>
+
+## Response
+
+```json
+{
+  "invoices": [...],
+  "pagination": {
+    "total": 42,
+    "page": 1,
+    "pageSize": 20,
+    "hasMore": true
+  }
+}
+```

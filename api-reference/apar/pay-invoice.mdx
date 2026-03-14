@@ -1,0 +1,24 @@
+---
+title: 'Pay Invoice'
+api: 'POST /api/v1/apar/invoices/{id}/pay'
+description: 'Execute immediate on-chain payment for an approved invoice'
+---
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>Invoice UUID</ParamField>
+
+## Request Body
+
+<ParamField body="businessId" type="string" required>Business initiating payment</ParamField>
+
+## Response
+
+```json
+{
+  "status": "payment_requested",
+  "invoiceId": "a1b2c3d4-..."
+}
+```
+
+Payment is dispatched to the JAMES→SAMUEL→LEVI settlement pipeline. Settlement confirmation arrives via webhook or polling the invoice status.

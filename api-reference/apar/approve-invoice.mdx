@@ -1,0 +1,19 @@
+---
+title: 'Approve Invoice'
+api: 'POST /api/v1/apar/invoices/{id}/approve'
+description: 'Approve a pending invoice (CFO/controller action)'
+---
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>Invoice UUID</ParamField>
+
+## Request Body
+
+<ParamField body="approverAddress" type="string" required>
+  Ethereum address of the approver
+</ParamField>
+
+## Response
+
+Returns the updated invoice with `status: "approved"`.

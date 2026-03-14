@@ -1,0 +1,19 @@
+---
+title: 'Payment Schedules'
+api: 'POST /api/v1/apar/schedules'
+description: 'Create and manage payment schedules (immediate, future, recurring)'
+---
+
+## Create Schedule
+
+### Request Body
+
+<ParamField body="invoiceId" type="string" required>Invoice to schedule payment for</ParamField>
+<ParamField body="businessId" type="string" required>Business ID</ParamField>
+<ParamField body="type" type="string" default="immediate">`immediate`, `scheduled`, or `recurring`</ParamField>
+<ParamField body="executeAt" type="string">ISO-8601 execution time (required for scheduled/recurring)</ParamField>
+<ParamField body="interval" type="string">Recurring interval: `weekly`, `biweekly`, `monthly`, `quarterly`</ParamField>
+
+## List Schedules
+
+`GET /api/v1/apar/schedules?businessId=biz-001&status=pending`

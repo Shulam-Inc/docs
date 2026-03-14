@@ -1,0 +1,28 @@
+---
+title: 'Aging Report'
+api: 'GET /api/v1/apar/aging'
+description: 'View AP or AR aging buckets (current, 1-30, 31-60, 61-90, 90+ days)'
+---
+
+## Query Parameters
+
+<ParamField query="businessId" type="string" required>Business ID</ParamField>
+<ParamField query="direction" type="string" default="receivable">`payable` or `receivable`</ParamField>
+
+## Response
+
+```json
+{
+  "aging": {
+    "businessId": "biz-001",
+    "direction": "receivable",
+    "current": ["inv-001", "inv-002"],
+    "overdue_1_30": ["inv-003"],
+    "overdue_31_60": [],
+    "overdue_61_90": [],
+    "overdue_90_plus": [],
+    "totalOutstandingAtomic": "2500000000",
+    "computedAt": "2026-03-15T12:00:00.000Z"
+  }
+}
+```

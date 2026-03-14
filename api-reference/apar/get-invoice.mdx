@@ -1,0 +1,28 @@
+---
+title: 'Get Invoice'
+api: 'GET /api/v1/apar/invoices/{id}'
+description: 'Retrieve a single invoice by ID'
+---
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  Invoice UUID
+</ParamField>
+
+## Response
+
+Returns the full invoice object including status, approval chain, settlement details, and metadata.
+
+```json
+{
+  "invoice": {
+    "invoiceId": "a1b2c3d4-...",
+    "invoiceNumber": "INV-2026-001",
+    "status": "settled",
+    "settlementTxHash": "0x7a8b...",
+    "baruchReceiptId": "BR-2026-00047",
+    "settledAt": "2026-04-12T14:30:00.000Z"
+  }
+}
+```
